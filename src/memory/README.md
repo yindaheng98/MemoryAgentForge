@@ -40,8 +40,8 @@
 | -- | ------------- | ------------------------ |
 | 内容 | 可复用的经验教训（语义记忆） | 做过什么、进展、决策、未竟事项（情景记忆 / session） |
 | 文件划分 | 每文件一种经验类型 | 每文件一个**任务主题** |
-| 读取 | 按 query 检索可借鉴的经验 | 按新用户指示选主题、加载相关上下文 |
-| 写入 | 合并去重，维护"当前最佳实践" | **压缩旧内容 + 追加本次会话记录** |
+| 读取 | 按 query 检索可借鉴的经验 | 按新用户指示找出相关主题、加载状态上下文 |
+| 写入 | 合并去重，维护"当前最佳实践" | 按主题拆分会话记录，**压缩旧内容 + 追加新片段** |
 | 时态 | 长期有效 | 跟随项目进展不断演化 |
 
 `ProjectState` 正是用来替代单一 `TODO.md` 的：把"一个文件记所有事"升级为"按任务主题分治的会话记忆"。
@@ -114,7 +114,7 @@ description: 模型训练与调参任务的会话状态
 
 ## Agent 角色
 
-经验库四个 agent，状态库三个 agent：
+经验库与状态库各四个 agent，机制形态对称：读取都是"fan-out 细读 + 汇总"，写入都是"上级分派 + 逐文件落盘"。
 
 | Agent | 职责 | 输入 | 输出 | 线程权限 |
 | ----- | ---- | ---- | ---- | -------- |
@@ -123,8 +123,9 @@ description: 模型训练与调参任务的会话状态
 | `memory-dispatcher` | 写入时的上级 agent，分派经验 | 经验文本 + 所有可写库的文件清单（name + description） | JSON 分派计划；不值得保存时返回 `DISCARD` | 只读 |
 | `memory-writer` | 把分派片段合并进一个目标文件 | 目标文件路径 + 文件主题 + 经验片段 | 写入说明 | 可写 |
 | `state-reader` | 读一个主题的状态文件，判断与新指示的相关性 | 用户指示 + 单个状态文件路径 | 相关状态上下文；无关时返回 `IRRELEVANT` | 只读 |
-| `state-selector` | 为本次指示选定一个主主题并组装上下文 | 用户指示 + 主题清单 + 各 reader 的相关结果 | JSON：选定主题（或新建）+ 组装好的状态上下文 | 只读 |
-| `state-updater` | 任务结束后更新主题状态 | 主题文件路径 + 本次会话记录 | 更新说明 | 可写 |
+| `state-aggregator` | 组装本次执行要携带的状态上下文 | 用户指示 + 各 reader 的相关结果 | 整理后的状态上下文 | 只读 |
+| `state-dispatcher` | 更新时的上级 agent，按主题拆分会话记录 | 会话记录 + 主题清单（name + description） | JSON 分派计划（可新建主题；至少分派到一个主题） | 只读 |
+| `state-updater` | 把分派片段更新进一个主题文件 | 主题文件路径 + 会话记录片段 | 更新说明 | 可写 |
 
 标记沿用现有 pipeline 的单词大写约定（`FINISHED` / `ACCEPT`），新增 `IRRELEVANT` 与 `DISCARD`。
 
@@ -203,7 +204,7 @@ flowchart TD
 
 ## ProjectState 会话循环（load / update）
 
-每次有新的**用户指示**进来，都必须为它选定一个任务主题，带着该主题（及其它相关主题）的状态上下文去执行；执行结束后更新主题状态。整个循环：
+每次有新的**用户指示**进来，先找出它与哪些任务主题相关，带着这些主题的状态上下文去执行；执行结束后，把本次会话记录按主题拆分，更新所有被推进的主题——一次操作完全可能横跨多个主题。整个循环：
 
 ```mermaid
 flowchart TD
@@ -211,33 +212,56 @@ flowchart TD
     S --> R1[state-reader<br>主题 A + 指示]
     S --> R2[state-reader<br>主题 B + 指示]
     S --> R3[state-reader<br>主题 N + 指示]
-    R1 --> SEL[state-selector<br>选定一个主主题，无合适则新建<br>组装相关主题的状态上下文]
-    R2 --> SEL
-    R3 --> SEL
-    SEL --> EXEC[执行任务<br>下游 pipeline，注入状态上下文与经验摘要]
-    EXEC --> U[state-updater<br>压缩旧内容 + 追加本次会话记录]
-    U --> F[主题文件更新完成]
+    R1 --> F[过滤 IRRELEVANT 结果]
+    R2 --> F
+    R3 --> F
+    F --> A[state-aggregator<br>组装相关主题的状态上下文]
+    A --> EXEC[执行任务<br>下游 pipeline，注入状态上下文与经验摘要]
+    EXEC --> D[state-dispatcher<br>按主题拆分本次会话记录]
+    D --> U1[state-updater<br>主题 A：压缩 + 追加]
+    D --> U2[state-updater<br>新建主题 X]
+    U1 --> DONE[各主题文件更新完成]
+    U2 --> DONE
 ```
 
-### 加载与选主题（load）
+### 加载相关主题（load）
 
 1. 扫描 `ProjectState` 目录，列出所有主题文件；
 2. **为每个主题文件创建一个独立的 `state-reader`**，并行运行：读状态文件 + 用户指示，判断该主题与指示是否相关；相关则提取"接续这件事需要知道的上下文"（当前进展、关键决策、未竟事项），无关返回 `IRRELEVANT`；
-3. `state-selector` 读用户指示、主题清单和各 reader 的结果，输出 JSON：
-   - **主主题**：本次指示归属的那一个主题——通常是最相关的现有主题；若指示开启了全新的事，则新建主题（给出 `name` + `description`）。**每次指示必须且只能选定一个主主题**；
-   - **状态上下文**：把所有相关主题的上下文组装成一段可注入下游 prompt 的文本（跨主题相关时，其它主题只作为上下文参考，不会被本次更新）；
-4. 返回 `{ topic, isNew, context }`，调用方把 `context` 注入执行任务的 agent，并记住 `topic` 用于结束后更新。
-
-状态库为空（项目刚开始）时跳过 fan-out，直接由 selector 根据指示新建第一个主题。
+3. 过滤掉 `IRRELEVANT` 的结果；全部无关或状态库为空（项目刚开始）时返回空上下文，直接执行；
+4. 其余结果交给 `state-aggregator`，组装成一段可注入下游 prompt 的状态上下文；
+5. 返回 `{ topics, context }`，调用方把 `context` 注入执行任务的 agent。`topics` 只是本次相关主题的记录，**不限制**结束后的更新范围——更新哪些主题由 dispatcher 根据实际做了什么决定。
 
 ### 执行后更新（update）
 
-任务执行结束后，调用方把**本次会话记录**（用户指示、做了什么、结果如何、遗留事项）交给 `state-updater`，定向更新主主题文件：
+任务执行结束后，调用方把**本次会话记录**（用户指示、做了什么、结果如何、遗留事项）交给 `state-dispatcher`，按主题拆分后分发更新：
 
-- **压缩**：把"最近活动"中久远的条目折叠进"历史摘要"，丢弃过时细节，控制文件长度（软上限，建议约 200 行）；
-- **追加**：在"最近活动"中加入本次会话记录，刷新"当前状态"和"关键决策"。
+1. dispatcher 读会话记录和主题清单（name + description），把记录拆成片段：推进了哪个主题，对应片段就分派给哪个主题；开启了新的事就新建主题（给出 `name` + `description`）。**会话记录至少要落到一个主题**——状态承载会话连续性，这里没有 `DISCARD`，没有合适主题就新建一个；
+2. 对每个分派项启动一个 `state-updater`（不同主题可并行；每文件恰好一个 updater，避免写冲突），更新对应主题文件：
+   - **压缩**：把"最近活动"中久远的条目折叠进"历史摘要"，丢弃过时细节，控制文件长度（软上限，建议约 200 行）；
+   - **追加**：在"最近活动"中加入分派来的会话片段，刷新"当前状态"和"关键决策"。
 
-这就是"压缩之前的并往里加东西"：状态文件像一个不断 compaction 的对话 session，近期细、久远粗，总量有界。
+分派计划的 JSON 格式与经验写入一致：
+
+```json
+{
+  "assignments": [
+    {
+      "topic": "model-training.md",
+      "isNew": false,
+      "record": "分派给该主题的会话片段……"
+    },
+    {
+      "topic": "ablation-experiments.md",
+      "isNew": true,
+      "description": "消融实验任务的会话状态",
+      "record": "……"
+    }
+  ]
+}
+```
+
+这就是"压缩之前的并往里加东西"：每个主题文件像一个不断 compaction 的对话 session，近期细、久远粗，总量有界。
 
 ## 模块结构规划
 
@@ -255,9 +279,10 @@ src/memory/
     ├── aggregator.ts    # MemoryAggregatorAgent
     ├── dispatcher.ts    # MemoryDispatcherAgent
     ├── writer.ts        # MemoryWriterAgent
-    ├── state-reader.ts  # StateReaderAgent
-    ├── state-selector.ts# StateSelectorAgent
-    └── state-updater.ts # StateUpdaterAgent
+    ├── state-reader.ts      # StateReaderAgent
+    ├── state-aggregator.ts  # StateAggregatorAgent
+    ├── state-dispatcher.ts  # StateDispatcherAgent
+    └── state-updater.ts     # StateUpdaterAgent
 ```
 
 ### API 草案
@@ -300,9 +325,8 @@ export type LoadProjectStateOptions = {
 };
 
 export type LoadedProjectState = {
-  topic: string;   // 选定的主主题（文件名 name）
-  isNew: boolean;  // 是否为本次新建的主题
-  context: string; // 组装好的状态上下文；状态库为空且新建主题时为 ""
+  topics: readonly string[]; // 与本次指示相关的主题（可能为空）
+  context: string;           // 组装好的状态上下文；无相关主题时为 ""
 };
 
 export async function loadProjectState(
@@ -312,14 +336,14 @@ export async function loadProjectState(
 
 export type UpdateProjectStateOptions = {
   statePath: string;
-  topic: string;         // loadProjectState 选定的主主题
   sessionRecord: string; // 本次会话记录：指示、操作、结果、遗留事项
 };
 
+// 返回更新报告：更新/新建了哪些主题
 export async function updateProjectState(
   team: AgentTeam<MemoryAgentVariablesByName>,
   options: UpdateProjectStateOptions,
-): Promise<void>;
+): Promise<UpdateProjectStateReport>;
 ```
 
 ### Agent 变量草案
@@ -354,16 +378,20 @@ export type StateReaderVariables = {
   irrelevantMark: string; // IRRELEVANT
 };
 
-export type StateSelectorVariables = {
+export type StateAggregatorVariables = {
   instruction: string;
-  topicCatalog: string; // 主题清单：name + description
-  findings: string;     // 各 state-reader 相关结果的拼接
+  findings: string; // 各 state-reader 相关结果的拼接，带来源主题标注
 };
-// 输出 JSON: { "topic": "...", "isNew": false, "description": "...", "context": "..." }
+
+export type StateDispatcherVariables = {
+  sessionRecord: string;
+  topicCatalog: string; // 主题清单：name + description
+};
+// 输出 JSON: { "assignments": [{ "topic": "...", "isNew": false, "record": "..." }] }
 
 export type StateUpdaterVariables = {
   stateFilePath: string;
-  sessionRecord: string; // 本次会话记录
+  record: string; // 分派给该主题的会话片段
 };
 ```
 
@@ -386,17 +414,16 @@ npm run cli -- memory-store \
   --project-memory-path output/memory \
   --experience-path output/lessons.md
 
-# 状态加载：为新指示选主题并输出状态上下文
+# 状态加载：找出与新指示相关的主题并输出状态上下文
 npm run cli -- state-load \
   --config agent-forge.yaml \
   --state-path output/state \
   --instruction-path output/goal.md
 
-# 状态更新：任务结束后压缩并追加会话记录
+# 状态更新：任务结束后按主题拆分会话记录并更新
 npm run cli -- state-update \
   --config agent-forge.yaml \
   --state-path output/state \
-  --topic model-training \
   --session-record-path output/session.md
 ```
 
@@ -416,7 +443,9 @@ agents:
     thread: codex-5.5-full-access
   state-reader:
     thread: codex-5.5-read-only
-  state-selector:
+  state-aggregator:
+    thread: codex-5.5-read-only
+  state-dispatcher:
     thread: codex-5.5-read-only
   state-updater:
     thread: codex-5.5-full-access
@@ -426,10 +455,10 @@ agents:
 
 `developing` 已有 hooks（`beforeRevisionLoop` / `afterRevision` / `afterTodoUpdate`），集成方式与 `developing-skill` 叠加 `trajectory-optimizer` 的做法一致——新增一个 `developing-memory` 包装（或并入 `developing-skill`）：
 
-- **运行开始时**：把 `--goal-path` 的内容视为本次用户指示，调 `loadProjectState` 选定主主题并拿到状态上下文，注入 `coding-manager`（选任务时知道之前做到哪了）；
+- **运行开始时**：把 `--goal-path` 的内容视为本次用户指示，调 `loadProjectState` 找出相关主题并拿到状态上下文，注入 `coding-manager`（选任务时知道之前做到哪了）；
 - **任务开始前**（`beforeRevisionLoop`）：以 `currentTask` 为 query 调 `retrieveMemory`，把经验摘要与状态上下文一起注入 `developer` / `code-reviewer` 的 prompt（为空则不注入）；
 - **任务结束后**（`afterTodoUpdate`）：把 `currentTask` + `revisionReport` 交给一个**经验提炼步骤**，得到候选经验文本后调 `storeMemory`；
-- **运行结束时**：汇总本轮做了什么（指示、各任务、结果、遗留事项）作为会话记录，调 `updateProjectState` 更新主主题文件。
+- **运行结束时**：汇总本轮做了什么（指示、各任务、结果、遗留事项）作为会话记录，调 `updateProjectState`，由 `state-dispatcher` 拆分给所有被推进的主题（含新建）后逐一更新。
 
 状态上下文回答"接着干什么"，经验摘要回答"怎么干得好"，两者互补。`ProjectState` 稳定后可逐步替代 `TODO.md` 的任务记忆职责。
 
@@ -438,9 +467,10 @@ agents:
 ## 设计取舍
 
 - **每文件一个 reader，而不是向量检索**：记忆文件的数量级是几十而不是几万，fan-out 完全可行；LLM 的语义匹配能力远强于向量相似度，且 reader 还能针对 query 做总结适配，而不只是召回原文；零基础设施，记忆库本身对人类完全可读可改。代价是检索成本与文件数线性相关，因此必须控制文件数量（见下一条）。
-- **控制文件膨胀**：dispatcher / selector 倾向并入现有文件而非新建；每库建议软上限约 20 个文件；经验文件靠合并去重、状态文件靠压缩控制长度。这同时保证了检索成本与文件质量。
+- **控制文件膨胀**：两个 dispatcher 都倾向并入现有文件/主题而非新建；每库建议软上限约 20 个文件；经验文件靠合并去重、状态文件靠压缩控制长度。这同时保证了检索成本与文件质量。
 - **经验与状态分离**：两者的写入语义完全不同——经验是合并出"当前最佳实践"，状态是压缩+追加的时间线；读取语义也不同——经验按 query 找借鉴，状态按指示接续上下文。混在一起会让 writer/updater 的 prompt 目标冲突。
-- **每次指示必选且只选一个主主题**：保证每轮活动都有唯一归属、状态可追溯；其它相关主题只作为上下文读取，不被本次更新，避免一次写多个状态文件造成发散。
+- **状态读写都可跨主题**：一次操作可能同时推进多个主题——load 时所有相关主题都贡献上下文，update 时由 `state-dispatcher` 把会话记录拆分给所有被推进的主题。约束不在"只许动一个主题"，而在"每个片段只落到它真正推进的主题"，避免把同一段流水账复制进多个文件。
+- **状态没有 `DISCARD`**：经验可以宁缺毋滥，会话连续性不能断档。会话记录至少落到一个主题，没有合适主题就新建。
 - **dispatcher 统一跨库分派**："这条经验是全局可泛化还是项目专属"、"是客观经验还是用户偏好"本身就是语义判断，集中在一个 agent 做最合适，还能把一条经验拆成多个片段分别入库。
 - **`DISCARD` 质量闸门**：写入端宁缺毋滥。记忆库的价值取决于信噪比，而不是条目数量。
 - **合并而非追加（经验）、压缩即遗忘（状态）**：经验文件维护"当前最佳实践"，新旧冲突以新为准；状态文件近期细、久远粗，总量有界。两者都是轻量的记忆更新/遗忘机制。
