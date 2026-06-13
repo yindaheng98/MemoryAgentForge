@@ -34,3 +34,8 @@ export abstract class MemoryAgent<Variables extends PromptVariables> extends Age
     return path.relative(this.memoryDir, path.resolve(filePath)) || ".";
   }
 }
+
+export type Finding = {
+  path: string;
+  content: string;
+};
