@@ -1,10 +1,13 @@
-import type { AgentFactoryMap } from "coding-agent-forge";
+import type { AgentFactoryMap, AgentTeam, RecordCallback } from "coding-agent-forge";
 
+import { memoryAggregation, type MemoryAggregationOptions } from "./aggregation.js";
+import { memoryDispatch, type MemoryPlanningOptions } from "./dispatch.js";
 import { MemoryReaderAgent } from "./reader.js";
 import { MemoryModifyPlannerAgent } from "./modify-planner.js";
 import { MemoryModifierAgent } from "./modifier.js";
 import { MemoryCreatePlannerAgent } from "./create-planner.js";
 import { MemoryCreatorAgent } from "./creator.js";
+import type { MemoryFraction } from "./types.js";
 import type { MemoryReaderVariables } from "./reader.js";
 import type { MemoryModifyPlannerVariables } from "./modify-planner.js";
 import type { MemoryModifierVariables } from "./modifier.js";
@@ -26,3 +29,32 @@ export const agentFactories: AgentFactoryMap = {
   "memory-create-planner": (thread, constants) => new MemoryCreatePlannerAgent(thread, constants),
   "memory-creator": (thread, constants) => new MemoryCreatorAgent(thread, constants),
 };
+
+/**
+ * Small facade over the memory agent team. It keeps agent construction in one
+ * place so callers only choose between recall and remember orchestration.
+ */
+export class Memory {
+  constructor(private readonly team: AgentTeam<MemoryAgentVariablesByName>) {}
+
+  recall(options: MemoryAggregationOptions, onRecord?: RecordCallback): Promise<MemoryFraction[]> {
+    return memoryAggregation(
+      async () => (await this.team.createAgent("memory-reader")) as MemoryReaderAgent,
+      options,
+      onRecord,
+    );
+  }
+
+  remember(options: MemoryPlanningOptions, onRecord?: RecordCallback): Promise<void> {
+    return memoryDispatch(
+      async () =>
+        (await this.team.createAgent("memory-modify-planner")) as MemoryModifyPlannerAgent,
+      async () =>
+        (await this.team.createAgent("memory-create-planner")) as MemoryCreatePlannerAgent,
+      async () => (await this.team.createAgent("memory-modifier")) as MemoryModifierAgent,
+      async () => (await this.team.createAgent("memory-creator")) as MemoryCreatorAgent,
+      options,
+      onRecord,
+    );
+  }
+}
