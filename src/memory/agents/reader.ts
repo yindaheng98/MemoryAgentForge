@@ -31,7 +31,7 @@ ${variables.query}
 Global findings from all memory files (may include an earlier finding for ${filePath}):
 ${findings}
 
-Read the memory file ${filePath} and the global findings. Decide the finding for this file and query.
+According to the global findings, decide the finding of ${filePath} for the query.
 If the earlier finding for this file is already good, output exactly:
 ${variables.acceptMark}
 If a change helps, output the revised finding for this memory file.
