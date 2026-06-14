@@ -31,10 +31,10 @@ ${variables.query}
 Global findings from all memory files (may include an earlier finding for ${filePath}):
 ${findings}
 
-Read only the memory file ${filePath}; in light of the global findings, decide this file's finding for the query.
-If your earlier finding for this file is already good as is, output exactly:
+Read the memory file ${filePath} and the global findings. Decide the finding for this file and query.
+If the earlier finding for this file is already good, output exactly:
 ${variables.acceptMark}
-If a change helps, output the revised finding for this file only.
+If a change helps, output the revised finding for this memory file.
 If this file no longer contributes anything useful, output exactly:
 ${variables.irrelevantMark}
 `;
@@ -47,8 +47,8 @@ ${variables.domainHint}
 Query:
 ${variables.query}
 
-Read only the memory file ${filePath}; if it contains anything related to the query, extract and summarize the related points concisely.
-Otherwise output exactly:
+Read the memory file ${filePath} and extract anything related to the query. Summarize the related points concisely.
+If nothing is related to the query, output exactly:
 ${variables.irrelevantMark}
 `;
   }
