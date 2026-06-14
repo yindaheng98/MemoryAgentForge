@@ -12,7 +12,7 @@ function isMeaningful(plan: MemoryFraction): boolean {
   return plan.content !== "" && plan.content !== NOCHANGE_MARK;
 }
 
-export type MemoryPlanningOptions = {
+export type MemoryDispatchOptions = {
   domainHint: string;
   content: string;
   dirPath: string;
@@ -36,7 +36,7 @@ type State = {
 async function modifyPlannerPass(
   current: readonly State[],
   plans: string,
-  options: MemoryPlanningOptions,
+  options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<State[]> {
   return Promise.all(
@@ -85,7 +85,7 @@ type GrowthState = {
 async function createPlannerPass(
   current: GrowthState,
   plans: string,
-  options: MemoryPlanningOptions,
+  options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<GrowthState> {
   if (current.accepted) {
@@ -135,7 +135,7 @@ export type MemoryPlanningResult = [...MemoryFraction[], MemoryFraction | undefi
 export async function memoryPlanning(
   createModifyPlanner: MemoryModifyPlannerFactory,
   createCreatePlanner: MemoryCreatePlannerFactory,
-  options: MemoryPlanningOptions,
+  options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<MemoryPlanningResult> {
   const renderer = await createModifyPlanner();
@@ -194,12 +194,6 @@ export async function memoryPlanning(
   return [...plans, growthPlan];
 }
 
-export type MemoryApplyOptions = {
-  domainHint: string;
-  content: string;
-  dirPath: string;
-};
-
 export type MemoryModifierFactory = () => Promise<MemoryModifierAgent>;
 export type MemoryCreatorFactory = () => Promise<MemoryCreatorAgent>;
 
@@ -213,7 +207,7 @@ export async function memoryApply(
   createModifier: MemoryModifierFactory,
   createCreator: MemoryCreatorFactory,
   plans: MemoryPlanningResult,
-  options: MemoryApplyOptions,
+  options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<void> {
   const filePlans = plans.slice(0, -1).filter((plan): plan is MemoryFraction => plan !== undefined);
@@ -263,7 +257,7 @@ export async function memoryDispatch(
   createCreatePlanner: MemoryCreatePlannerFactory,
   createModifier: MemoryModifierFactory,
   createCreator: MemoryCreatorFactory,
-  options: MemoryPlanningOptions,
+  options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<void> {
   const plans = await memoryPlanning(createModifyPlanner, createCreatePlanner, options, onRecord);
