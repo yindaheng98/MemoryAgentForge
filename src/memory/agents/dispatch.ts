@@ -1,7 +1,8 @@
 import type { RecordCallback } from "coding-agent-forge";
-import { MemoryPlannerAgent } from "./planner.js";
-import { MemoryApplyAgent, MemoryGrowAgent } from "./apply.js";
-import { MemoryGrowerAgent } from "./grower.js";
+import { MemoryModifyPlannerAgent } from "./modify-planner.js";
+import { MemoryModifierAgent } from "./modifier.js";
+import { MemoryCreatePlannerAgent } from "./create-planner.js";
+import { MemoryCreatorAgent } from "./creator.js";
 import type { MemoryFraction } from "./types.js";
 
 const NOCHANGE_MARK = "NOCHANGE";
@@ -19,20 +20,20 @@ export type MemoryPlanningOptions = {
   maxRounds: number;
 };
 
-export type MemoryPlannerFactory = () => Promise<MemoryPlannerAgent>;
+export type MemoryModifyPlannerFactory = () => Promise<MemoryModifyPlannerAgent>;
 
 type State = {
   accepted: boolean;
   plan: MemoryFraction;
-  planner: MemoryPlannerAgent;
+  modifyPlanner: MemoryModifyPlannerAgent;
 };
 
 /**
- * One write pass: every unaccepted file's planner refines its plan against the
- * given global plans ("" on the first pass) and accepts or revises its own
- * plan. Accepted planners are kept without re-running.
+ * One write pass: every unaccepted file's modify-planner refines its plan
+ * against the given global plans ("" on the first pass) and accepts or revises
+ * its own plan. Accepted planners are kept without re-running.
  */
-async function plannerPass(
+async function modifyPlannerPass(
   current: readonly State[],
   plans: string,
   options: MemoryPlanningOptions,
@@ -44,7 +45,7 @@ async function plannerPass(
         return entry;
       }
       const content = (
-        await entry.planner.runStreamed(
+        await entry.modifyPlanner.runStreamed(
           {
             domainHint: options.domainHint,
             content: options.content,
@@ -57,31 +58,31 @@ async function plannerPass(
         )
       ).trim();
       if (content === ACCEPT_MARK) {
-        return { accepted: true, plan: entry.plan, planner: entry.planner };
+        return { accepted: true, plan: entry.plan, modifyPlanner: entry.modifyPlanner };
       }
       return {
         accepted: false,
         plan: { path: entry.plan.path, content: content === "" ? NOCHANGE_MARK : content },
-        planner: entry.planner,
+        modifyPlanner: entry.modifyPlanner,
       };
     }),
   );
 }
 
-export type MemoryGrowerFactory = () => Promise<MemoryGrowerAgent>;
+export type MemoryCreatePlannerFactory = () => Promise<MemoryCreatePlannerAgent>;
 
 type GrowthState = {
   accepted: boolean;
   growth: MemoryFraction;
-  grower: MemoryGrowerAgent;
+  createPlanner: MemoryCreatePlannerAgent;
 };
 
 /**
- * One grower pass: the grower re-plans new file(s) against the given existing
- * plans, refining its previous new-file plan (undefined on the first pass). It
- * may accept that plan, drop it as unneeded, or propose a revised one.
+ * One write pass: the create-planner re-plans new file(s) against the given
+ * existing plans, refining its previous new-file plan (undefined on the first
+ * pass). It may accept that plan, drop it as unneeded, or propose a revised one.
  */
-async function growerPass(
+async function createPlannerPass(
   current: GrowthState,
   plans: string,
   options: MemoryPlanningOptions,
@@ -91,7 +92,7 @@ async function growerPass(
     return current;
   }
   const content = (
-    await current.grower.runStreamed(
+    await current.createPlanner.runStreamed(
       {
         domainHint: options.domainHint,
         content: options.content,
@@ -105,12 +106,12 @@ async function growerPass(
     )
   ).trim();
   if (content === ACCEPT_MARK) {
-    return { accepted: true, growth: current.growth, grower: current.grower };
+    return { accepted: true, growth: current.growth, createPlanner: current.createPlanner };
   }
   return {
     accepted: false,
     growth: { path: current.growth.path, content: content === "" ? NOCHANGE_MARK : content },
-    grower: current.grower,
+    createPlanner: current.createPlanner,
   };
 }
 
@@ -120,39 +121,40 @@ export type MemoryPlanningResult = [...MemoryFraction[], MemoryFraction | undefi
  * Plan how new content should be written across the memory files, the
  * write-side mirror of `memoryAggregation`.
  *
- * One planner owns each existing file. The first pass mirrors recall: planners
- * plan their own files with empty global plans, then the grower plans new
- * file(s) for whatever they leave uncovered. Refinement passes feed planners
- * the existing plans plus the latest new-file plan, then re-run the grower over
- * the result. The loop stops only when the grower and every planner all accept
- * (or rounds run out).
+ * One modify-planner owns each existing file. The first pass mirrors recall:
+ * modify-planners plan their own files with empty global plans, then the
+ * create-planner plans new file(s) for whatever they leave uncovered.
+ * Refinement passes feed modify-planners the existing plans plus the latest
+ * new-file plan, then re-run the create-planner over the result. The loop stops
+ * only when the create-planner and every modify-planner all accept (or rounds
+ * run out).
  *
  * Returns the planned changes with the final slot reserved for growth:
  * existing-file plans first, then the growth plan or undefined.
  */
 export async function memoryPlanning(
-  createPlanner: MemoryPlannerFactory,
-  createGrower: MemoryGrowerFactory,
+  createModifyPlanner: MemoryModifyPlannerFactory,
+  createCreatePlanner: MemoryCreatePlannerFactory,
   options: MemoryPlanningOptions,
   onRecord?: RecordCallback,
 ): Promise<MemoryPlanningResult> {
-  const renderer = await createPlanner();
+  const renderer = await createModifyPlanner();
 
   const seed: State[] = await Promise.all(
     options.filePaths.map(async (filePath) => ({
       accepted: false,
       plan: { path: filePath, content: NOCHANGE_MARK },
-      planner: await createPlanner(),
+      modifyPlanner: await createModifyPlanner(),
     })),
   );
   const growthSeed: GrowthState = {
     accepted: false,
     growth: { path: options.dirPath, content: NOCHANGE_MARK },
-    grower: await createGrower(),
+    createPlanner: await createCreatePlanner(),
   };
 
-  let current = await plannerPass(seed, "", options, onRecord);
-  let growth = await growerPass(
+  let current = await modifyPlannerPass(seed, "", options, onRecord);
+  let growth = await createPlannerPass(
     growthSeed,
     renderer.renderPlans(current.map(({ plan }) => plan).filter(isMeaningful)),
     options,
@@ -169,8 +171,8 @@ export async function memoryPlanning(
     ]
       .filter((section) => section !== "")
       .join("\n\n");
-    const refined = await plannerPass(current, globalPlans, options, onRecord);
-    const refinedGrowth = await growerPass(
+    const refined = await modifyPlannerPass(current, globalPlans, options, onRecord);
+    const refinedGrowth = await createPlannerPass(
       growth,
       renderer.renderPlans(refined.map(({ plan }) => plan).filter(isMeaningful)),
       options,
@@ -198,19 +200,18 @@ export type MemoryApplyOptions = {
   dirPath: string;
 };
 
-export type MemoryApplyFactory = () => Promise<MemoryApplyAgent>;
-export type MemoryGrowFactory = () => Promise<MemoryGrowAgent>;
+export type MemoryModifierFactory = () => Promise<MemoryModifierAgent>;
+export type MemoryCreatorFactory = () => Promise<MemoryCreatorAgent>;
 
 /**
  * Execute a plan from `memoryPlanning` with the apply agents.
  *
- * Each existing-file plan is applied in parallel by its own apply agent; the
- * final growth slot, if present, is handed to the grow agent to create the new
- * file(s).
+ * Each existing-file plan is applied in parallel by its own modifier; the final
+ * growth slot, if present, is handed to the creator to create the new file(s).
  */
 export async function memoryApply(
-  createApplier: MemoryApplyFactory,
-  createGrow: MemoryGrowFactory,
+  createModifier: MemoryModifierFactory,
+  createCreator: MemoryCreatorFactory,
   plans: MemoryPlanningResult,
   options: MemoryApplyOptions,
   onRecord?: RecordCallback,
@@ -225,8 +226,8 @@ export async function memoryApply(
 
   await Promise.all(
     filePlans.map(async (plan) => {
-      const applier = await createApplier();
-      await applier.runStreamed(
+      const modifier = await createModifier();
+      await modifier.runStreamed(
         {
           domainHint: options.domainHint,
           content: options.content,
@@ -239,8 +240,8 @@ export async function memoryApply(
   );
 
   if (growthPlan !== undefined) {
-    const grow = await createGrow();
-    await grow.runStreamed(
+    const creator = await createCreator();
+    await creator.runStreamed(
       {
         domainHint: options.domainHint,
         content: options.content,
@@ -258,13 +259,13 @@ export async function memoryApply(
  * counterpart to recall's `memoryAggregation`.
  */
 export async function memoryDispatch(
-  createPlanner: MemoryPlannerFactory,
-  createGrower: MemoryGrowerFactory,
-  createApplier: MemoryApplyFactory,
-  createGrow: MemoryGrowFactory,
+  createModifyPlanner: MemoryModifyPlannerFactory,
+  createCreatePlanner: MemoryCreatePlannerFactory,
+  createModifier: MemoryModifierFactory,
+  createCreator: MemoryCreatorFactory,
   options: MemoryPlanningOptions,
   onRecord?: RecordCallback,
 ): Promise<void> {
-  const plans = await memoryPlanning(createPlanner, createGrower, options, onRecord);
-  await memoryApply(createApplier, createGrow, plans, options, onRecord);
+  const plans = await memoryPlanning(createModifyPlanner, createCreatePlanner, options, onRecord);
+  await memoryApply(createModifier, createCreator, plans, options, onRecord);
 }
