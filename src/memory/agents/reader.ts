@@ -34,9 +34,9 @@ ${findings}
 According to the global findings, decide the finding of ${filePath} for the query.
 If the earlier finding for this file is already good, output exactly:
 ${variables.acceptMark}
-If a change helps, output the revised finding for this memory file.
 If this file no longer contributes anything useful, output exactly:
 ${variables.irrelevantMark}
+If a change helps, output the revised finding for this memory file.
 `;
     }
 
