@@ -1,7 +1,7 @@
 import type { AgentFactoryMap, AgentTeam, RecordCallback } from "coding-agent-forge";
 
 import { memoryAggregation, type MemoryAggregationOptions } from "./aggregation.js";
-import { memoryDispatch, type MemoryPlanningOptions } from "./dispatch.js";
+import { memoryDispatch, type MemoryDispatchOptions } from "./dispatch.js";
 import { MemoryReaderAgent } from "./reader.js";
 import { MemoryModifyPlannerAgent } from "./modify-planner.js";
 import { MemoryModifierAgent } from "./modifier.js";
@@ -45,7 +45,7 @@ export class Memory {
     );
   }
 
-  remember(options: MemoryPlanningOptions, onRecord?: RecordCallback): Promise<void> {
+  remember(options: MemoryDispatchOptions, onRecord?: RecordCallback): Promise<void> {
     return memoryDispatch(
       async () =>
         (await this.team.createAgent("memory-modify-planner")) as MemoryModifyPlannerAgent,
