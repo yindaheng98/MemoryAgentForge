@@ -1,4 +1,4 @@
-import { MemoryAgent, type Finding } from "./types.js";
+import { MemoryAgent, type MemoryFraction } from "./types.js";
 
 export type MemoryReaderVariables = {
   domainHint: string;
@@ -11,7 +11,7 @@ export type MemoryReaderVariables = {
 
 export class MemoryReaderAgent extends MemoryAgent<MemoryReaderVariables> {
   /** Render findings into a prompt path format consistent with this agent. */
-  renderFindings(findings: readonly Finding[]): string {
+  renderFindings(findings: readonly MemoryFraction[]): string {
     return findings
       .map((finding) => `From ${this.memoryRelativePath(finding.path)}:\n${finding.content}`)
       .join("\n\n");

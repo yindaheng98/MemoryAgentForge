@@ -9,7 +9,7 @@ export type MemoryAgentConstants = {
 
 /**
  * Base for every memory agent. Holds the memory directory used to render a
- * Finding's absolute path as a prompt path the agent's tools can resolve.
+ * memory file's absolute path as a prompt path the agent's tools can resolve.
  */
 export abstract class MemoryAgent<Variables extends PromptVariables> extends Agent<
   Variables,
@@ -35,7 +35,7 @@ export abstract class MemoryAgent<Variables extends PromptVariables> extends Age
   }
 }
 
-export type Finding = {
+export type MemoryFraction = {
   path: string;
   content: string;
 };
