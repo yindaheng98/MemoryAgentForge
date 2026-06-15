@@ -1,8 +1,17 @@
 export {
   defineMemoryRecallPipeline,
-  defineMemoryRememberPipeline,
   memoryRecallArgsOptions,
+} from "./pipeline-recall.js";
+
+export {
+  defineMemoryRememberPipeline,
   memoryRememberArgsOptions,
+} from "./pipeline-remember.js";
+
+export {
+  listMemoryFiles,
+  sharedMemoryArgsOptions,
+  type MemoryPipelineConfig,
 } from "./pipeline.js";
 
 export {

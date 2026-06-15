@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
 import { runPipelinesCli, type Pipeline } from "coding-agent-forge";
-import { defineMemoryRecallPipeline, defineMemoryRememberPipeline } from "./pipeline.js";
+import { defineMemoryRecallPipeline } from "./pipeline-recall.js";
+import { defineMemoryRememberPipeline } from "./pipeline-remember.js";
 
 /**
  * Domain description shared by every memory agent. It frames what kind of
