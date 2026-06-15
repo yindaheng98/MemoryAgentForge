@@ -1,4 +1,6 @@
 export {
+  Memory,
+  defineMemoryPipelines,
   defineMemoryRecallPipeline,
   defineMemoryRememberPipeline,
   memoryRecallArgsOptions,
@@ -15,6 +17,10 @@ export {
   MemoryModifierAgent,
   MemoryCreatePlannerAgent,
   MemoryCreatorAgent,
+  createMemoryAgentFactories,
+  createMemoryAggregateAgentFactories,
+  createMemoryDispatchAgentFactories,
+  defaultMemoryAgentNames,
   memoryAggregate,
   memoryDispatch,
   memoryPlanning,
@@ -24,7 +30,6 @@ export {
   memoryDispatchAgentFactories,
 } from "./agents/index.js";
 
-export { domainHint, memoryPipelines, recallPipeline, rememberPipeline } from "./cli.js";
 
 export type {
   MemoryAgentConstants,
@@ -42,6 +47,7 @@ export type {
   MemoryModifierVariables,
   MemoryCreatePlannerVariables,
   MemoryCreatorVariables,
+  MemoryAgentNames,
   MemoryAggregateAgentVariablesByName,
   MemoryDispatchAgentVariablesByName,
   MemoryAgentVariablesByName,
