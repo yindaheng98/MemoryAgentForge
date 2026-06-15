@@ -1,6 +1,6 @@
 import type { AgentFactoryMap, AgentTeam, RecordCallback } from "coding-agent-forge";
 
-import { memoryAggregate, type MemoryAggregationOptions } from "./aggregate.js";
+import { memoryAggregate, type MemoryAggregateOptions } from "./aggregate.js";
 import { memoryDispatch, type MemoryDispatchOptions } from "./dispatch.js";
 import { MemoryReaderAgent } from "./reader.js";
 import { MemoryModifyPlannerAgent } from "./modify-planner.js";
@@ -37,7 +37,7 @@ export const agentFactories: AgentFactoryMap = {
 export class Memory {
   constructor(private readonly team: AgentTeam<MemoryAgentVariablesByName>) {}
 
-  recall(options: MemoryAggregationOptions, onRecord?: RecordCallback): Promise<MemoryFraction[]> {
+  recall(options: MemoryAggregateOptions, onRecord?: RecordCallback): Promise<MemoryFraction[]> {
     return memoryAggregate(
       async () => (await this.team.createAgent("memory-reader")) as MemoryReaderAgent,
       options,

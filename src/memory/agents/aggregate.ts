@@ -9,7 +9,7 @@ function isRelevant(finding: MemoryFraction): boolean {
   return finding.content !== "" && finding.content !== IRRELEVANT_MARK;
 }
 
-export type MemoryAggregationOptions = {
+export type MemoryAggregateOptions = {
   domainHint: string;
   filePaths: readonly string[];
   maxRounds: number;
@@ -32,7 +32,7 @@ type State = {
 async function readerPass(
   current: readonly State[],
   findings: string,
-  options: MemoryAggregationOptions,
+  options: MemoryAggregateOptions,
   onRecord?: RecordCallback,
 ): Promise<State[]> {
   return Promise.all(
@@ -77,7 +77,7 @@ async function readerPass(
  */
 export async function memoryAggregate(
   createReader: MemoryReaderFactory,
-  options: MemoryAggregationOptions,
+  options: MemoryAggregateOptions,
   onRecord?: RecordCallback,
 ): Promise<MemoryFraction[]> {
   if (options.filePaths.length === 0) {

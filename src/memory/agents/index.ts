@@ -1,7 +1,7 @@
 export { MemoryAgent, type MemoryAgentConstants, type MemoryFraction } from "./types.js";
 export {
   memoryAggregate,
-  type MemoryAggregationOptions,
+  type MemoryAggregateOptions,
   type MemoryReaderFactory,
 } from "./aggregate.js";
 export {
