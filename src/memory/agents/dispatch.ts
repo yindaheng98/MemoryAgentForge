@@ -8,8 +8,8 @@ import type { MemoryFraction } from "./types.js";
 const NOCHANGE_MARK = "NOCHANGE";
 const ACCEPT_MARK = "ACCEPT";
 
-function isMeaningful(plan: MemoryFraction): boolean {
-  return plan.content !== "" && plan.content !== NOCHANGE_MARK;
+function isMeaningful(fraction: MemoryFraction): boolean {
+  return fraction.content !== "" && fraction.content !== NOCHANGE_MARK;
 }
 
 export type MemoryDispatchOptions = {
@@ -24,14 +24,14 @@ export type MemoryModifyPlannerFactory = () => Promise<MemoryModifyPlannerAgent>
 
 type State = {
   accepted: boolean;
-  plan: MemoryFraction;
+  modificationPlan: MemoryFraction;
   modifyPlanner: MemoryModifyPlannerAgent;
 };
 
 /**
- * One write pass: every unaccepted file's modify-planner refines its plan
- * against the given global plans ("" on the first pass) and accepts or revises
- * its own plan. Accepted planners are kept without re-running.
+ * One write pass: every unaccepted file's modify-planner refines its
+ * modification plan against the given global plans ("" on the first pass) and
+ * accepts or revises its own. Accepted planners are kept without re-running.
  */
 async function modifyPlannerPass(
   current: readonly State[],
@@ -49,7 +49,7 @@ async function modifyPlannerPass(
           {
             domainHint: options.domainHint,
             content: options.content,
-            filePath: entry.plan.path,
+            filePath: entry.modificationPlan.path,
             plans,
             noChangeMark: NOCHANGE_MARK,
             acceptMark: ACCEPT_MARK,

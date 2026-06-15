@@ -4,7 +4,7 @@ export type MemoryCreatorVariables = {
   domainHint: string;
   content: string;
   dirPath: string;
-  plan: string;
+  creationPlan: string;
 };
 
 export class MemoryCreatorAgent extends MemoryAgent<MemoryCreatorVariables> {
@@ -17,10 +17,10 @@ ${variables.domainHint}
 Content being remembered:
 ${variables.content}
 
-Write plan for new file(s) in ${dirPath}:
-${variables.plan}
+Creation plan for new file(s) in ${dirPath}:
+${variables.creationPlan}
 
-Apply the write plan by creating the new memory file(s) in ${dirPath}. Keep each file focused and bounded.
+Apply the creation plan by creating the new memory file(s) in ${dirPath}. Keep each file focused and bounded.
 `;
   }
 }

@@ -4,8 +4,8 @@ export type MemoryCreatePlannerVariables = {
   domainHint: string;
   content: string;
   dirPath: string;
-  plans: string;
-  growth: string;
+  modificationPlans: string;
+  creationPlan: string;
   noChangeMark: string;
   acceptMark: string;
 };
@@ -13,8 +13,8 @@ export type MemoryCreatePlannerVariables = {
 export class MemoryCreatePlannerAgent extends MemoryAgent<MemoryCreatePlannerVariables> {
   protected buildPrompt(variables: Readonly<MemoryCreatePlannerVariables>): string {
     const dirPath = this.memoryRelativePath(variables.dirPath);
-    const growth = variables.growth.trim();
-    if (growth !== "") {
+    const creationPlan = variables.creationPlan.trim();
+    if (creationPlan !== "") {
       return `
 Memory domain:
 ${variables.domainHint}
@@ -22,18 +22,18 @@ ${variables.domainHint}
 Content being remembered:
 ${variables.content}
 
-Write plans for existing files in ${dirPath}:
-${variables.plans}
+Modification plans for existing files in ${dirPath}:
+${variables.modificationPlans}
 
-Earlier plan for new file(s):
-${growth}
+Earlier creation plan for new file(s):
+${creationPlan}
 
-According to the write plans, decide whether the content to remember is fully covered, and plan new file(s) in ${dirPath} for whatever is not covered.
-If the earlier plan for new file(s) is already good, output exactly:
+According to the modification plans, decide whether the content to remember is fully covered, and write a creation plan for new file(s) in ${dirPath} for whatever is not covered.
+If the earlier creation plan is already good, output exactly:
 ${variables.acceptMark}
 If the content is already fully covered, output exactly:
 ${variables.noChangeMark}
-If a change helps, output the revised plan for the new file(s).
+If a change helps, output the revised creation plan.
 `;
     }
 
@@ -44,10 +44,10 @@ ${variables.domainHint}
 Content being remembered:
 ${variables.content}
 
-Write plans for existing files in ${dirPath}:
-${variables.plans}
+Modification plans for existing files in ${dirPath}:
+${variables.modificationPlans}
 
-Decide whether the write plans fully cover the content to remember, and plan new file(s) in ${dirPath} for whatever is not covered.
+According to the modification plans, decide whether the content to remember is fully covered, and write a creation plan for new file(s) in ${dirPath} for whatever is not covered.
 If the content is already fully covered, output exactly:
 ${variables.noChangeMark}
 `;
