@@ -9,37 +9,37 @@
 # file: --config memory-forge.yaml --config secret.yaml
 
 runtimes:
-  codex-default:
+  codex:
     kind: codex
 
 threads:
   memory-runner:
-    runtime: codex-default
+    runtime: codex
     options:
       model: gpt-5.4
-      workingDirectory: ./memory
+      workingDirectory: &memoryDir ./memory
 
 agents:
   # Recall side: extracts query-relevant findings from each memory file.
   memory-reader:
     thread: memory-runner
     constants:
-      memoryDir: ./memory
+      memoryDir: *memoryDir
 
   # Remember side: plan and apply changes to existing and new memory files.
   memory-modify-planner:
     thread: memory-runner
     constants:
-      memoryDir: ./memory
+      memoryDir: *memoryDir
   memory-modifier:
     thread: memory-runner
     constants:
-      memoryDir: ./memory
+      memoryDir: *memoryDir
   memory-create-planner:
     thread: memory-runner
     constants:
-      memoryDir: ./memory
+      memoryDir: *memoryDir
   memory-creator:
     thread: memory-runner
     constants:
-      memoryDir: ./memory
+      memoryDir: *memoryDir
