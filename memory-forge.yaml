@@ -17,6 +17,7 @@ threads:
     runtime: codex
     options:
       model: gpt-5.4
+      sandboxMode: danger-full-access
       workingDirectory: &workingDir ./memory
 
 agents:
