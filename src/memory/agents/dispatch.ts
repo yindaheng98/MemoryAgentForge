@@ -22,7 +22,7 @@ export type MemoryDispatchOptions = {
 
 export type MemoryModifyPlannerFactory = () => Promise<MemoryModifyPlannerAgent>;
 
-type State = {
+type ModificationState = {
   accepted: boolean;
   modificationPlan: MemoryFraction;
   modifyPlanner: MemoryModifyPlannerAgent;
@@ -34,13 +34,13 @@ type State = {
  * accepts or revises its own. Accepted planners are kept without re-running.
  */
 async function modifyPlannerPass(
-  current: readonly State[],
-  plans: string,
+  current: readonly ModificationState[],
+  modificationPlans: string,
   options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
-): Promise<State[]> {
+): Promise<ModificationState[]> {
   return Promise.all(
-    current.map(async (entry): Promise<State> => {
+    current.map(async (entry): Promise<ModificationState> => {
       if (entry.accepted) {
         return entry;
       }
@@ -50,7 +50,7 @@ async function modifyPlannerPass(
             domainHint: options.domainHint,
             content: options.content,
             filePath: entry.modificationPlan.path,
-            plans,
+            modificationPlans,
             noChangeMark: NOCHANGE_MARK,
             acceptMark: ACCEPT_MARK,
           },
@@ -58,11 +58,18 @@ async function modifyPlannerPass(
         )
       ).trim();
       if (content === ACCEPT_MARK) {
-        return { accepted: true, plan: entry.plan, modifyPlanner: entry.modifyPlanner };
+        return {
+          accepted: true,
+          modificationPlan: entry.modificationPlan,
+          modifyPlanner: entry.modifyPlanner,
+        };
       }
       return {
         accepted: false,
-        plan: { path: entry.plan.path, content: content === "" ? NOCHANGE_MARK : content },
+        modificationPlan: {
+          path: entry.modificationPlan.path,
+          content: content === "" ? NOCHANGE_MARK : content,
+        },
         modifyPlanner: entry.modifyPlanner,
       };
     }),
@@ -71,23 +78,23 @@ async function modifyPlannerPass(
 
 export type MemoryCreatePlannerFactory = () => Promise<MemoryCreatePlannerAgent>;
 
-type GrowthState = {
+type CreationState = {
   accepted: boolean;
-  growth: MemoryFraction;
+  creationPlan: MemoryFraction;
   createPlanner: MemoryCreatePlannerAgent;
 };
 
 /**
  * One write pass: the create-planner re-plans new file(s) against the given
- * existing plans, refining its previous new-file plan (undefined on the first
- * pass). It may accept that plan, drop it as unneeded, or propose a revised one.
+ * modification plans, refining its previous creation plan (empty on the first
+ * pass). It may accept that creation plan, drop it as unneeded, or revise it.
  */
 async function createPlannerPass(
-  current: GrowthState,
-  plans: string,
+  current: CreationState,
+  modificationPlans: string,
   options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
-): Promise<GrowthState> {
+): Promise<CreationState> {
   if (current.accepted) {
     return current;
   }
@@ -97,8 +104,9 @@ async function createPlannerPass(
         domainHint: options.domainHint,
         content: options.content,
         dirPath: options.dirPath,
-        plans: plans === "" ? "(no existing-file plans)" : plans,
-        growth: isMeaningful(current.growth) ? current.growth.content : "",
+        modificationPlans:
+          modificationPlans === "" ? "(no existing-file plans)" : modificationPlans,
+        creationPlan: isMeaningful(current.creationPlan) ? current.creationPlan.content : "",
         noChangeMark: NOCHANGE_MARK,
         acceptMark: ACCEPT_MARK,
       },
@@ -106,16 +114,26 @@ async function createPlannerPass(
     )
   ).trim();
   if (content === ACCEPT_MARK) {
-    return { accepted: true, growth: current.growth, createPlanner: current.createPlanner };
+    return {
+      accepted: true,
+      creationPlan: current.creationPlan,
+      createPlanner: current.createPlanner,
+    };
   }
   return {
     accepted: false,
-    growth: { path: current.growth.path, content: content === "" ? NOCHANGE_MARK : content },
+    creationPlan: {
+      path: current.creationPlan.path,
+      content: content === "" ? NOCHANGE_MARK : content,
+    },
     createPlanner: current.createPlanner,
   };
 }
 
-export type MemoryPlanningResult = [...MemoryFraction[], MemoryFraction | undefined];
+export type MemoryPlan = {
+  modificationPlans: MemoryFraction[];
+  creationPlans: MemoryFraction | undefined;
+};
 
 /**
  * Plan how new content should be written across the memory files, the
@@ -124,74 +142,95 @@ export type MemoryPlanningResult = [...MemoryFraction[], MemoryFraction | undefi
  * One modify-planner owns each existing file. The first pass mirrors recall:
  * modify-planners plan their own files with empty global plans, then the
  * create-planner plans new file(s) for whatever they leave uncovered.
- * Refinement passes feed modify-planners the existing plans plus the latest
- * new-file plan, then re-run the create-planner over the result. The loop stops
+ * Refinement passes feed modify-planners the modification plans plus the latest
+ * creation plan, then re-run the create-planner over the result. The loop stops
  * only when the create-planner and every modify-planner all accept (or rounds
  * run out).
  *
- * Returns the planned changes with the final slot reserved for growth:
- * existing-file plans first, then the growth plan or undefined.
+ * Returns the planned changes: per-file modification plans plus the creation
+ * plans for new file(s), or undefined when none are needed.
  */
 export async function memoryPlanning(
   createModifyPlanner: MemoryModifyPlannerFactory,
   createCreatePlanner: MemoryCreatePlannerFactory,
   options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
-): Promise<MemoryPlanningResult> {
+): Promise<MemoryPlan> {
   const renderer = await createModifyPlanner();
+  const renderModificationPlans = (states: readonly ModificationState[]): string =>
+    renderer.renderPlans(
+      states.map(({ modificationPlan }) => modificationPlan).filter(isMeaningful),
+    );
 
-  const seed: State[] = await Promise.all(
+  const modifySeed: ModificationState[] = await Promise.all(
     options.filePaths.map(async (filePath) => ({
       accepted: false,
-      plan: { path: filePath, content: NOCHANGE_MARK },
+      modificationPlan: { path: filePath, content: NOCHANGE_MARK },
       modifyPlanner: await createModifyPlanner(),
     })),
   );
-  const growthSeed: GrowthState = {
+  const createSeed: CreationState = {
     accepted: false,
-    growth: { path: options.dirPath, content: NOCHANGE_MARK },
+    creationPlan: { path: options.dirPath, content: NOCHANGE_MARK },
     createPlanner: await createCreatePlanner(),
   };
 
-  let current = await modifyPlannerPass(seed, "", options, onRecord);
-  let growth = await createPlannerPass(
-    growthSeed,
-    renderer.renderPlans(current.map(({ plan }) => plan).filter(isMeaningful)),
+  let modifyStates = await modifyPlannerPass(modifySeed, "", options, onRecord);
+  let createState = await createPlannerPass(
+    createSeed,
+    renderModificationPlans(modifyStates),
     options,
     onRecord,
   );
-  if (!current.some(({ plan }) => isMeaningful(plan)) && !isMeaningful(growth.growth)) {
-    return [undefined];
+  if (
+    !modifyStates.some(({ modificationPlan }) => isMeaningful(modificationPlan)) &&
+    !isMeaningful(createState.creationPlan)
+  ) {
+    return { modificationPlans: [], creationPlans: undefined };
   }
 
   for (let round = 1; round <= options.maxRounds; round++) {
     const globalPlans = [
-      renderer.renderPlans(current.map(({ plan }) => plan).filter(isMeaningful)),
-      isMeaningful(growth.growth) ? `For new file(s):\n${growth.growth.content}` : "",
+      renderModificationPlans(modifyStates),
+      isMeaningful(createState.creationPlan)
+        ? `For new file(s):\n${createState.creationPlan.content}`
+        : "",
     ]
       .filter((section) => section !== "")
       .join("\n\n");
-    const refined = await modifyPlannerPass(current, globalPlans, options, onRecord);
-    const refinedGrowth = await createPlannerPass(
-      growth,
-      renderer.renderPlans(refined.map(({ plan }) => plan).filter(isMeaningful)),
+    const refinedModifyStates = await modifyPlannerPass(
+      modifyStates,
+      globalPlans,
       options,
       onRecord,
     );
-    if (!refined.some(({ plan }) => isMeaningful(plan)) && !isMeaningful(refinedGrowth.growth)) {
-      return [undefined];
+    const refinedCreateState = await createPlannerPass(
+      createState,
+      renderModificationPlans(refinedModifyStates),
+      options,
+      onRecord,
+    );
+    if (
+      !refinedModifyStates.some(({ modificationPlan }) => isMeaningful(modificationPlan)) &&
+      !isMeaningful(refinedCreateState.creationPlan)
+    ) {
+      return { modificationPlans: [], creationPlans: undefined };
     }
 
-    current = refined;
-    growth = refinedGrowth;
-    if (growth.accepted && current.every(({ accepted }) => accepted)) {
+    modifyStates = refinedModifyStates;
+    createState = refinedCreateState;
+    if (createState.accepted && modifyStates.every(({ accepted }) => accepted)) {
       break;
     }
   }
 
-  const plans = current.map(({ plan }) => plan).filter(isMeaningful);
-  const growthPlan = isMeaningful(growth.growth) ? growth.growth : undefined;
-  return [...plans, growthPlan];
+  const modificationPlans = modifyStates
+    .map(({ modificationPlan }) => modificationPlan)
+    .filter(isMeaningful);
+  const creationPlans = isMeaningful(createState.creationPlan)
+    ? createState.creationPlan
+    : undefined;
+  return { modificationPlans, creationPlans };
 }
 
 export type MemoryModifierFactory = () => Promise<MemoryModifierAgent>;
@@ -200,47 +239,47 @@ export type MemoryCreatorFactory = () => Promise<MemoryCreatorAgent>;
 /**
  * Execute a plan from `memoryPlanning` with the apply agents.
  *
- * Each existing-file plan is applied in parallel by its own modifier; the final
- * growth slot, if present, is handed to the creator to create the new file(s).
+ * Each modification plan is applied in parallel by its own modifier; the
+ * creation plans, if present, are handed to the creator to create the new
+ * file(s).
  */
 export async function memoryApply(
   createModifier: MemoryModifierFactory,
   createCreator: MemoryCreatorFactory,
-  plans: MemoryPlanningResult,
+  plan: MemoryPlan,
   options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<void> {
-  const filePlans = plans.slice(0, -1).filter((plan): plan is MemoryFraction => plan !== undefined);
-  const growthPlan = plans.at(-1);
+  const { modificationPlans, creationPlans } = plan;
 
-  if (filePlans.length === 0 && growthPlan === undefined) {
+  if (modificationPlans.length === 0 && creationPlans === undefined) {
     console.log("\n# Nothing to remember\n");
     return;
   }
 
   await Promise.all(
-    filePlans.map(async (plan) => {
+    modificationPlans.map(async (modificationPlan) => {
       const modifier = await createModifier();
       await modifier.runStreamed(
         {
           domainHint: options.domainHint,
           content: options.content,
-          filePath: plan.path,
-          plan: plan.content,
+          filePath: modificationPlan.path,
+          modificationPlan: modificationPlan.content,
         },
         onRecord,
       );
     }),
   );
 
-  if (growthPlan !== undefined) {
+  if (creationPlans !== undefined) {
     const creator = await createCreator();
     await creator.runStreamed(
       {
         domainHint: options.domainHint,
         content: options.content,
         dirPath: options.dirPath,
-        plan: growthPlan.content,
+        creationPlan: creationPlans.content,
       },
       onRecord,
     );
@@ -260,6 +299,6 @@ export async function memoryDispatch(
   options: MemoryDispatchOptions,
   onRecord?: RecordCallback,
 ): Promise<void> {
-  const plans = await memoryPlanning(createModifyPlanner, createCreatePlanner, options, onRecord);
-  await memoryApply(createModifier, createCreator, plans, options, onRecord);
+  const plan = await memoryPlanning(createModifyPlanner, createCreatePlanner, options, onRecord);
+  await memoryApply(createModifier, createCreator, plan, options, onRecord);
 }
