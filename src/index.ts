@@ -1,18 +1,9 @@
 export {
   defineMemoryRecallPipeline,
-  memoryRecallArgsOptions,
-} from "./pipeline-recall.js";
-
-export {
   defineMemoryRememberPipeline,
+  memoryRecallArgsOptions,
   memoryRememberArgsOptions,
-} from "./pipeline-remember.js";
-
-export {
-  listMemoryFiles,
-  sharedMemoryArgsOptions,
-  type MemoryPipelineConfig,
-} from "./pipeline.js";
+} from "./pipeline/index.js";
 
 export {
   MemoryAgent,

@@ -11,12 +11,12 @@ import {
   MemoryAggregator,
   memoryAggregateAgentFactories,
   type MemoryAggregateAgentVariablesByName,
-} from "./agents/index.js";
+} from "../agents/index.js";
 import {
   listMemoryFiles,
   sharedMemoryArgsOptions,
   type MemoryPipelineConfig,
-} from "./pipeline.js";
+} from "./common.js";
 
 export const memoryRecallArgsOptions = {
   ...sharedMemoryArgsOptions,
