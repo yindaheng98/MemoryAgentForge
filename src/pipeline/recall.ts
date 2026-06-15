@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 import {
   MemoryAggregator,
   memoryAggregateAgentFactories,
+  type MemoryFraction,
   type MemoryAggregateAgentVariablesByName,
 } from "../agents/index.js";
 import {
@@ -17,6 +18,8 @@ import {
   sharedMemoryArgsOptions,
   type MemoryPipelineConfig,
 } from "./common.js";
+
+export type MemoryRecallCallback = (findings: readonly MemoryFraction[]) => Promise<void> | void;
 
 export const memoryRecallArgsOptions = {
   ...sharedMemoryArgsOptions,
@@ -40,9 +43,12 @@ export function defineMemoryRecallPipeline(
     agentFactories: memoryAggregateAgentFactories,
     async run(
       team: AgentTeam<MemoryAggregateAgentVariablesByName>,
-      options: PipelineOptions<typeof memoryRecallArgsOptions>,
+      options: PipelineOptions<typeof memoryRecallArgsOptions> & {
+        callback?: MemoryRecallCallback;
+      },
     ): Promise<void> {
       const {
+        callback,
         "query-path": queryPath,
         "max-rounds": maxRounds,
         "memory-path": memoryPath,
@@ -60,8 +66,7 @@ export function defineMemoryRecallPipeline(
         { domainHint: config.domainHint, filePaths, query, maxRounds: Number(maxRounds) },
         logRecord,
       );
-      const recalled = findings.map(({ content }) => content).join("\n\n");
-      console.log(`\n# Recalled memory\n${recalled === "" ? "(none)" : recalled}\n`);
+      await callback?.(findings);
     },
   });
 }

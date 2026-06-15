@@ -3,6 +3,7 @@ export {
   defineMemoryRememberPipeline,
   memoryRecallArgsOptions,
   memoryRememberArgsOptions,
+  type MemoryRecallCallback,
 } from "./pipeline/index.js";
 
 export {
