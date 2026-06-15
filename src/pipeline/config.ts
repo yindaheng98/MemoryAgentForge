@@ -1,6 +1,12 @@
 import { type PipelineArgsOptions } from "coding-agent-forge";
 
 export const sharedMemoryArgsOptions = {
+  "domain-hint": {
+    type: "string",
+    default:
+      "A long-lived knowledge base of durable facts, decisions, and preferences worth keeping across sessions.",
+    description: "Memory domain description",
+  },
   "memory-path": {
     type: "string",
     description: "Memory directory override",
