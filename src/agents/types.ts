@@ -4,7 +4,7 @@ import { statSync } from "node:fs";
 import path from "node:path";
 
 export type MemoryAgentConstants = {
-  memoryDir: string;
+  workingDir: string;
 };
 
 /**
@@ -15,23 +15,23 @@ export abstract class MemoryAgent<Variables extends PromptVariables> extends Age
   Variables,
   MemoryAgentConstants
 > {
-  protected readonly memoryDir: string;
+  protected readonly workingDir: string;
 
   constructor(thread: Thread, constants: Readonly<PromptConstants>) {
-    if (!constants.memoryDir) {
-      throw new Error("Memory agent constants.memoryDir must be configured.");
+    if (!constants.workingDir) {
+      throw new Error("Memory agent constants.workingDir must be configured.");
     }
 
-    const memoryDir = path.resolve(constants.memoryDir);
-    if (!statSync(memoryDir).isDirectory()) {
-      throw new Error(`memoryDir must be a directory: ${memoryDir}`);
+    const workingDir = path.resolve(constants.workingDir);
+    if (!statSync(workingDir).isDirectory()) {
+      throw new Error(`workingDir must be a directory: ${workingDir}`);
     }
-    super(thread, { memoryDir });
-    this.memoryDir = memoryDir;
+    super(thread, { workingDir });
+    this.workingDir = workingDir;
   }
 
   protected memoryRelativePath(filePath: string): string {
-    return path.relative(this.memoryDir, path.resolve(filePath)) || ".";
+    return path.relative(this.workingDir, path.resolve(filePath)) || ".";
   }
 }
 

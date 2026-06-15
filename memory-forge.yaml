@@ -2,7 +2,7 @@
 #
 # Keep these three paths consistent so the agents resolve memory files correctly:
 #   - the CLI's --memory-path
-#   - each agent's constants.memoryDir
+#   - each agent's constants.workingDir
 #   - the thread's options.workingDirectory
 #
 # Put provider credentials in secret.yaml (git-ignored) and pass it after this
@@ -17,29 +17,29 @@ threads:
     runtime: codex
     options:
       model: gpt-5.4
-      workingDirectory: &memoryDir ./memory
+      workingDirectory: &workingDir ./memory
 
 agents:
   # Recall side: extracts query-relevant findings from each memory file.
   memory-reader:
     thread: memory-runner
     constants:
-      memoryDir: *memoryDir
+      workingDir: *workingDir
 
   # Remember side: plan and apply changes to existing and new memory files.
   memory-modify-planner:
     thread: memory-runner
     constants:
-      memoryDir: *memoryDir
+      workingDir: *workingDir
   memory-modifier:
     thread: memory-runner
     constants:
-      memoryDir: *memoryDir
+      workingDir: *workingDir
   memory-create-planner:
     thread: memory-runner
     constants:
-      memoryDir: *memoryDir
+      workingDir: *workingDir
   memory-creator:
     thread: memory-runner
     constants:
-      memoryDir: *memoryDir
+      workingDir: *workingDir

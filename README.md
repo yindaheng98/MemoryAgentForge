@@ -42,7 +42,7 @@ The CLI requires these agents:
 | `memory-creator`        | `remember` | Create the planned new file(s)              |
 
 > Keep three paths consistent so the agents can resolve memory files: the CLI's
-> `--memory-path`, each agent's `constants.memoryDir`, and the thread's
+> `--memory-path`, each agent's `constants.workingDir`, and the thread's
 > `options.workingDirectory`. The `memory-modifier` and `memory-creator` agents
 > write files, so give their thread/runtime write permission (e.g. an
 > `acceptEdits`-style permission mode for the runtime you choose).
