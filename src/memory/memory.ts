@@ -23,38 +23,32 @@ async function listMemoryFiles(dirPath: string): Promise<string[]> {
   return files;
 }
 
-export type MemoryConfig = {
-  domainHint: string;
-  dirPath: string;
-  maxRounds: number;
-};
-
 export class Memory<Names extends MemoryAgentNames = MemoryAgentNames> {
   readonly agentFactories: AgentFactoryMap;
 
-  constructor(
-    readonly config: MemoryConfig,
-    readonly agentNames: Names,
-  ) {
+  constructor(readonly agentNames: Names) {
     this.agentFactories = createMemoryAgentFactories(agentNames);
   }
 
   async recall(
     team: AgentTeam<MemoryAgentVariablesByName<Names>>,
+    domainHint: string,
+    dirPath: string,
+    maxRounds: number,
     query: string,
     onRecord?: RecordCallback,
   ): Promise<MemoryFraction[]> {
-    const filePaths = await listMemoryFiles(this.config.dirPath);
+    const filePaths = await listMemoryFiles(dirPath);
     if (filePaths.length === 0) {
       return [];
     }
 
     return new MemoryAggregator(team, this.agentNames).aggregate(
       {
-        domainHint: this.config.domainHint,
+        domainHint,
         filePaths,
         query,
-        maxRounds: this.config.maxRounds,
+        maxRounds,
       },
       onRecord,
     );
@@ -62,18 +56,21 @@ export class Memory<Names extends MemoryAgentNames = MemoryAgentNames> {
 
   async remember(
     team: AgentTeam<MemoryAgentVariablesByName<Names>>,
+    domainHint: string,
+    dirPath: string,
+    maxRounds: number,
     content: string,
     onRecord?: RecordCallback,
   ): Promise<void> {
-    const filePaths = await listMemoryFiles(this.config.dirPath);
+    const filePaths = await listMemoryFiles(dirPath);
 
     await new MemoryDispatcher(team, this.agentNames).dispatch(
       {
-        domainHint: this.config.domainHint,
+        domainHint,
         content,
-        dirPath: this.config.dirPath,
+        dirPath,
         filePaths,
-        maxRounds: this.config.maxRounds,
+        maxRounds,
       },
       onRecord,
     );

@@ -1,1 +1,1 @@
-export { Memory, type MemoryConfig } from "./memory.js";
+export { Memory } from "./memory.js";
