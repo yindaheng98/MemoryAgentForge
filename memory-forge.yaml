@@ -1,0 +1,45 @@
+# Sample configuration for memory-agent-forge.
+#
+# Keep these three paths consistent so the agents resolve memory files correctly:
+#   - the CLI's --memory-path
+#   - each agent's constants.memoryDir
+#   - the thread's options.workingDirectory
+#
+# Put provider credentials in secret.yaml (git-ignored) and pass it after this
+# file: --config memory-forge.yaml --config secret.yaml
+
+runtimes:
+  codex-default:
+    kind: codex
+
+threads:
+  memory-runner:
+    runtime: codex-default
+    options:
+      model: gpt-5.4
+      workingDirectory: ./memory
+
+agents:
+  # Recall side: extracts query-relevant findings from each memory file.
+  memory-reader:
+    thread: memory-runner
+    constants:
+      memoryDir: ./memory
+
+  # Remember side: plan and apply changes to existing and new memory files.
+  memory-modify-planner:
+    thread: memory-runner
+    constants:
+      memoryDir: ./memory
+  memory-modifier:
+    thread: memory-runner
+    constants:
+      memoryDir: ./memory
+  memory-create-planner:
+    thread: memory-runner
+    constants:
+      memoryDir: ./memory
+  memory-creator:
+    thread: memory-runner
+    constants:
+      memoryDir: ./memory
