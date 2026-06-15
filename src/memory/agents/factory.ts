@@ -45,21 +45,27 @@ export const agentFactories: AgentFactoryMap = {
 };
 
 /**
- * Small facade over the memory agent team. It keeps agent construction in one
- * place so callers only choose between recall and remember orchestration.
+ * Small facade over the recall-side memory agent team.
  */
-export class Memory {
-  constructor(private readonly team: AgentTeam<MemoryAgentVariablesByName>) {}
+export class MemoryAggregator {
+  constructor(private readonly team: AgentTeam<MemoryAggregateAgentVariablesByName>) {}
 
-  recall(options: MemoryAggregateOptions, onRecord?: RecordCallback): Promise<MemoryFraction[]> {
+  aggregate(options: MemoryAggregateOptions, onRecord?: RecordCallback): Promise<MemoryFraction[]> {
     return memoryAggregate(
       async () => (await this.team.createAgent("memory-reader")) as MemoryReaderAgent,
       options,
       onRecord,
     );
   }
+}
 
-  remember(options: MemoryDispatchOptions, onRecord?: RecordCallback): Promise<void> {
+/**
+ * Small facade over the remember-side memory agent team.
+ */
+export class MemoryDispatcher {
+  constructor(private readonly team: AgentTeam<MemoryDispatchAgentVariablesByName>) {}
+
+  dispatch(options: MemoryDispatchOptions, onRecord?: RecordCallback): Promise<void> {
     return memoryDispatch(
       async () =>
         (await this.team.createAgent("memory-modify-planner")) as MemoryModifyPlannerAgent,

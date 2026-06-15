@@ -21,7 +21,8 @@ export { MemoryCreatePlannerAgent, type MemoryCreatePlannerVariables } from "./c
 export { MemoryCreatorAgent, type MemoryCreatorVariables } from "./creator.js";
 export { MemoryReaderAgent, type MemoryReaderVariables } from "./reader.js";
 export {
-  Memory,
+  MemoryAggregator,
+  MemoryDispatcher,
   agentFactories,
   memoryAggregateAgentFactories,
   memoryDispatchAgentFactories,
