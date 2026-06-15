@@ -1,4 +1,7 @@
 import { type PipelineArgsOptions } from "coding-agent-forge";
+import { mkdir, readdir } from "node:fs/promises";
+import path from "node:path";
+
 export const memoryArgsOptions = {
   mode: { type: "string", description: "recall or remember" },
   "memory-path": {
@@ -15,3 +18,15 @@ export const memoryArgsOptions = {
     description: "Refinement round limit for recall and remember",
   },
 } as const satisfies PipelineArgsOptions;
+
+async function listMemoryFiles(dirPath: string): Promise<string[]> {
+  const files: string[] = [];
+  await mkdir(dirPath, { recursive: true });
+  const entries = await readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      files.push(path.join(dirPath, entry.name));
+    }
+  }
+  return files;
+}
