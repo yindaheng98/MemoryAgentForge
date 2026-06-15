@@ -14,20 +14,34 @@ import type { MemoryModifierVariables } from "./modifier.js";
 import type { MemoryCreatePlannerVariables } from "./create-planner.js";
 import type { MemoryCreatorVariables } from "./creator.js";
 
-export type MemoryAgentVariablesByName = {
+export type MemoryAggregateAgentVariablesByName = {
   "memory-reader": MemoryReaderVariables;
+};
+
+export type MemoryDispatchAgentVariablesByName = {
   "memory-modify-planner": MemoryModifyPlannerVariables;
   "memory-modifier": MemoryModifierVariables;
   "memory-create-planner": MemoryCreatePlannerVariables;
   "memory-creator": MemoryCreatorVariables;
 };
 
-export const agentFactories: AgentFactoryMap = {
+export type MemoryAgentVariablesByName = MemoryAggregateAgentVariablesByName &
+  MemoryDispatchAgentVariablesByName;
+
+export const memoryAggregateAgentFactories: AgentFactoryMap = {
   "memory-reader": (thread, constants) => new MemoryReaderAgent(thread, constants),
+};
+
+export const memoryDispatchAgentFactories: AgentFactoryMap = {
   "memory-modify-planner": (thread, constants) => new MemoryModifyPlannerAgent(thread, constants),
   "memory-modifier": (thread, constants) => new MemoryModifierAgent(thread, constants),
   "memory-create-planner": (thread, constants) => new MemoryCreatePlannerAgent(thread, constants),
   "memory-creator": (thread, constants) => new MemoryCreatorAgent(thread, constants),
+};
+
+export const agentFactories: AgentFactoryMap = {
+  ...memoryAggregateAgentFactories,
+  ...memoryDispatchAgentFactories,
 };
 
 /**

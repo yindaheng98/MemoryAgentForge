@@ -20,4 +20,12 @@ export { MemoryModifierAgent, type MemoryModifierVariables } from "./modifier.js
 export { MemoryCreatePlannerAgent, type MemoryCreatePlannerVariables } from "./create-planner.js";
 export { MemoryCreatorAgent, type MemoryCreatorVariables } from "./creator.js";
 export { MemoryReaderAgent, type MemoryReaderVariables } from "./reader.js";
-export { Memory, agentFactories, type MemoryAgentVariablesByName } from "./factory.js";
+export {
+  Memory,
+  agentFactories,
+  memoryAggregateAgentFactories,
+  memoryDispatchAgentFactories,
+  type MemoryAggregateAgentVariablesByName,
+  type MemoryDispatchAgentVariablesByName,
+  type MemoryAgentVariablesByName,
+} from "./factory.js";
