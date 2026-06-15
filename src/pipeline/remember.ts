@@ -12,7 +12,7 @@ import {
   type MemoryAgentNames,
   type MemoryAgentVariablesByName,
 } from "../agents/index.js";
-import { Memory, type MemoryConfig } from "../memory/index.js";
+import { Memory } from "./memory.js";
 import { sharedMemoryArgsOptions } from "./config.js";
 
 export const memoryRememberArgsOptions = {
@@ -29,9 +29,9 @@ export const memoryRememberArgsOptions = {
  */
 export function defineMemoryRememberPipeline<Names extends MemoryAgentNames>(
   name: string,
-  memoryConfig: MemoryConfig,
   agentNames: Names,
 ): Pipeline<typeof memoryRememberArgsOptions, MemoryAgentVariablesByName<Names>> {
+  const memory = new Memory(agentNames);
   return definePipeline({
     name,
     description: "Remember content into memory.",
@@ -42,6 +42,7 @@ export function defineMemoryRememberPipeline<Names extends MemoryAgentNames>(
       options: PipelineOptions<typeof memoryRememberArgsOptions>,
     ): Promise<void> {
       const {
+        "domain-hint": domainHint,
         "content-path": contentPath,
         "memory-path": memoryPath,
         "max-rounds": maxRounds,
@@ -53,16 +54,7 @@ export function defineMemoryRememberPipeline<Names extends MemoryAgentNames>(
       const logRecord: RecordCallback = (thread, record) => {
         console.log(thread.recordToPrettyString(record));
       };
-      const cliMemory = new Memory(
-        {
-          domainHint: memoryConfig.domainHint,
-          dirPath: memoryPath,
-          maxRounds: Number(maxRounds),
-        },
-        agentNames,
-      );
-
-      await cliMemory.remember(team, content, logRecord);
+      await memory.remember(team, domainHint, memoryPath, Number(maxRounds), content, logRecord);
     },
   });
 }

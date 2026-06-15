@@ -13,7 +13,7 @@ import {
   type MemoryAgentVariablesByName,
   type MemoryFraction,
 } from "../agents/index.js";
-import { Memory, type MemoryConfig } from "../memory/index.js";
+import { Memory } from "./memory.js";
 import { sharedMemoryArgsOptions } from "./config.js";
 
 export type MemoryRecallCallback = (findings: readonly MemoryFraction[]) => Promise<void> | void;
@@ -32,9 +32,9 @@ export const memoryRecallArgsOptions = {
  */
 export function defineMemoryRecallPipeline<Names extends MemoryAgentNames>(
   name: string,
-  memoryConfig: MemoryConfig,
   agentNames: Names,
 ): Pipeline<typeof memoryRecallArgsOptions, MemoryAgentVariablesByName<Names>> {
+  const memory = new Memory(agentNames);
   return definePipeline({
     name,
     description: "Recall memory relevant to a query.",
@@ -48,6 +48,7 @@ export function defineMemoryRecallPipeline<Names extends MemoryAgentNames>(
     ): Promise<void> {
       const {
         callback,
+        "domain-hint": domainHint,
         "query-path": queryPath,
         "memory-path": memoryPath,
         "max-rounds": maxRounds,
@@ -59,16 +60,14 @@ export function defineMemoryRecallPipeline<Names extends MemoryAgentNames>(
       const logRecord: RecordCallback = (thread, record) => {
         console.log(thread.recordToPrettyString(record));
       };
-      const cliMemory = new Memory(
-        {
-          domainHint: memoryConfig.domainHint,
-          dirPath: memoryPath,
-          maxRounds: Number(maxRounds),
-        },
-        agentNames,
+      const findings = await memory.recall(
+        team,
+        domainHint,
+        memoryPath,
+        Number(maxRounds),
+        query,
+        logRecord,
       );
-
-      const findings = await cliMemory.recall(team, query, logRecord);
       await callback?.(findings);
       const recalled = findings.map(({ content }) => content).join("\n\n");
       console.log(`\n# Recalled memory\n${recalled === "" ? "(none)" : recalled}\n`);
