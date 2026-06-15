@@ -30,7 +30,6 @@ export {
   memoryDispatchAgentFactories,
 } from "./agents/index.js";
 
-
 export type {
   MemoryAgentConstants,
   MemoryFraction,
