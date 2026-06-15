@@ -13,7 +13,7 @@ import {
   type MemoryAgentVariablesByName,
 } from "../agents/index.js";
 import { Memory, type MemoryConfig } from "../memory/index.js";
-import { sharedMemoryArgsOptions } from "./common.js";
+import { sharedMemoryArgsOptions } from "./config.js";
 
 export const memoryRememberArgsOptions = {
   ...sharedMemoryArgsOptions,
