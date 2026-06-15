@@ -8,16 +8,13 @@ import {
 } from "coding-agent-forge";
 import { readFile } from "node:fs/promises";
 import {
-  MemoryAggregator,
-  memoryAggregateAgentFactories,
+  createMemoryAgentFactories,
+  type MemoryAgentNames,
+  type MemoryAgentVariablesByName,
   type MemoryFraction,
-  type MemoryAggregateAgentVariablesByName,
 } from "../agents/index.js";
-import {
-  listMemoryFiles,
-  sharedMemoryArgsOptions,
-  type MemoryPipelineConfig,
-} from "./common.js";
+import { Memory, type MemoryConfig } from "../memory/index.js";
+import { sharedMemoryArgsOptions } from "./common.js";
 
 export type MemoryRecallCallback = (findings: readonly MemoryFraction[]) => Promise<void> | void;
 
@@ -30,19 +27,21 @@ export const memoryRecallArgsOptions = {
 } as const satisfies PipelineArgsOptions;
 
 /**
- * Expose memory recall over the CLI. The returned pipeline reads a query file,
- * lists the memory files, then aggregates the relevant memory.
+ * Expose memory recall over the CLI. The returned pipeline reads a query file
+ * and delegates recall to the shared memory base.
  */
-export function defineMemoryRecallPipeline(
-  config: MemoryPipelineConfig,
-): Pipeline<typeof memoryRecallArgsOptions, MemoryAggregateAgentVariablesByName> {
+export function defineMemoryRecallPipeline<Names extends MemoryAgentNames>(
+  name: string,
+  memoryConfig: MemoryConfig,
+  agentNames: Names,
+): Pipeline<typeof memoryRecallArgsOptions, MemoryAgentVariablesByName<Names>> {
   return definePipeline({
-    name: config.name,
-    description: config.description,
+    name,
+    description: "Recall memory relevant to a query.",
     argsOptions: memoryRecallArgsOptions,
-    agentFactories: memoryAggregateAgentFactories,
+    agentFactories: createMemoryAgentFactories(agentNames),
     async run(
-      team: AgentTeam<MemoryAggregateAgentVariablesByName>,
+      team: AgentTeam<MemoryAgentVariablesByName<Names>>,
       options: PipelineOptions<typeof memoryRecallArgsOptions> & {
         callback?: MemoryRecallCallback;
       },
@@ -50,23 +49,29 @@ export function defineMemoryRecallPipeline(
       const {
         callback,
         "query-path": queryPath,
-        "max-rounds": maxRounds,
         "memory-path": memoryPath,
+        "max-rounds": maxRounds,
       } = options;
       if (queryPath === undefined || memoryPath === undefined) {
-        throw new Error("--query-path and --memory-path are required");
+        throw new Error(["--query-path", "--memory-path"].join(", ") + " are required");
       }
       const query = (await readFile(queryPath, "utf8")).trim();
-      const filePaths = await listMemoryFiles(memoryPath);
       const logRecord: RecordCallback = (thread, record) => {
         console.log(thread.recordToPrettyString(record));
       };
-
-      const findings = await new MemoryAggregator(team).aggregate(
-        { domainHint: config.domainHint, filePaths, query, maxRounds: Number(maxRounds) },
-        logRecord,
+      const cliMemory = new Memory(
+        {
+          domainHint: memoryConfig.domainHint,
+          dirPath: memoryPath,
+          maxRounds: Number(maxRounds),
+        },
+        agentNames,
       );
+
+      const findings = await cliMemory.recall(team, query, logRecord);
       await callback?.(findings);
+      const recalled = findings.map(({ content }) => content).join("\n\n");
+      console.log(`\n# Recalled memory\n${recalled === "" ? "(none)" : recalled}\n`);
     },
   });
 }
