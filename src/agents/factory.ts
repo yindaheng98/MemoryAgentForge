@@ -41,9 +41,8 @@ export type MemoryDispatchAgentVariablesByName<
   Record<Names["createPlanner"], MemoryCreatePlannerVariables> &
   Record<Names["creator"], MemoryCreatorVariables>;
 
-export type MemoryAgentVariablesByName<
-  Names extends MemoryAgentNames = typeof memoryAgentNames,
-> = MemoryAggregateAgentVariablesByName<Names> & MemoryDispatchAgentVariablesByName<Names>;
+export type MemoryAgentVariablesByName<Names extends MemoryAgentNames = typeof memoryAgentNames> =
+  MemoryAggregateAgentVariablesByName<Names> & MemoryDispatchAgentVariablesByName<Names>;
 
 export function createMemoryAggregateAgentFactories(
   agentNames: Pick<MemoryAgentNames, "reader"> = memoryAgentNames,
