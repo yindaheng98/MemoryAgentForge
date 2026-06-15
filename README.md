@@ -1,7 +1,8 @@
 # memory-agent-forge
 
 `memory-agent-forge` turns a folder of plain-text/Markdown files into an
-agent-managed memory. It ships two pipelines built on
+agent-managed memory. A memory base can be embedded in another pipeline or
+exposed as manual recall/remember pipelines built on
 [`coding-agent-forge`](https://github.com/yindaheng98/CodingAgentForge):
 
 - **recall** — read a query, scan the memory files with reader agents, and print
@@ -31,7 +32,7 @@ npm run build        # clean + tsc -> dist/
 ## Configuration
 
 Memory agents are configured with a YAML file (see [`memory-forge.yaml`](./memory-forge.yaml)).
-The CLI requires these agents:
+The default CLI memory requires these agents:
 
 | Agent                   | Used by    | Role                                        |
 | ----------------------- | ---------- | ------------------------------------------- |
@@ -46,6 +47,9 @@ The CLI requires these agents:
 > `options.workingDirectory`. The `memory-modifier` and `memory-creator` agents
 > write files, so give their thread/runtime write permission (e.g. an
 > `acceptEdits`-style permission mode for the runtime you choose).
+
+Additional memory bases provide their own agent names directly, so their YAML
+agent keys must match the names passed to `Memory` or `defineMemoryPipelines`.
 
 Put private credentials in `secret.yaml` (git-ignored) and pass it after the
 base config so it overrides sensitive fields locally:
@@ -84,13 +88,14 @@ memory-agent-forge recall --config memory-forge.yaml --memory-path ./memory --qu
 
 Shared options:
 
-| Option           | Pipelines         | Notes                                            |
-| ---------------- | ----------------- | ------------------------------------------------ |
-| `--config`       | both (repeatable) | YAML config files, merged in order (required)    |
-| `--memory-path`  | both              | Memory directory (created if missing) (required) |
-| `--max-rounds`   | both              | Refinement round limit (default: `3`)            |
-| `--query-path`   | `recall`          | File holding the recall query (required)         |
-| `--content-path` | `remember`        | File holding the content to store (required)     |
+| Option           | Pipelines         | Notes                                          |
+| ---------------- | ----------------- | ---------------------------------------------- |
+| `--config`       | both (repeatable) | YAML config files, merged in order (required)  |
+| `--domain-hint`  | both              | Memory domain description (has default)        |
+| `--memory-path`  | both              | Memory directory override (created if missing) |
+| `--max-rounds`   | both              | Refinement round limit (default: `3`)          |
+| `--query-path`   | `recall`          | File holding the recall query (required)       |
+| `--content-path` | `remember`        | File holding the content to store (required)   |
 
 Running with an unknown or missing pipeline name prints the available pipelines.
 Agent runtime records are streamed to the console; recalled memory is printed at
@@ -98,36 +103,98 @@ the end of a `recall` run.
 
 ## Library usage
 
-Everything is also importable. The package entry re-exports the pipelines,
-agents, and types; subpaths `memory-agent-forge/agents` and
+Everything is also importable. The package entry re-exports the memory base,
+pipelines, agents, and types; subpaths `memory-agent-forge/agents` and
 `memory-agent-forge/pipeline` expose the lower layers.
 
 ```ts
-import { defineMemoryRecallPipeline, defineMemoryRememberPipeline } from "memory-agent-forge";
+import { defineMemoryPipelines } from "memory-agent-forge";
 import { runPipelinesCli } from "coding-agent-forge";
 
-// Specialize the shared domain hint for your own memory.
-const domainHint = "Engineering decisions and conventions for project X.";
-
 await runPipelinesCli(
-  [
-    defineMemoryRecallPipeline({
-      name: "recall",
-      description: "Recall project memory.",
-      domainHint,
-    }),
-    defineMemoryRememberPipeline({
-      name: "remember",
-      description: "Remember project memory.",
-      domainHint,
-    }),
-  ],
+  defineMemoryPipelines("project-recall", "project-remember", {
+    reader: "project-memory-reader",
+    modifyPlanner: "project-memory-modify-planner",
+    modifier: "project-memory-modifier",
+    createPlanner: "project-memory-create-planner",
+    creator: "project-memory-creator",
+  }),
   process.argv.slice(2),
 );
 ```
 
-For finer-grained control, drive the agent teams directly with `MemoryAggregator`
-and `MemoryDispatcher` from `memory-agent-forge/agents`.
+For embedded use, define a memory base and include its factories in the host
+pipeline:
+
+```ts
+import { definePipeline } from "coding-agent-forge";
+import { Memory } from "memory-agent-forge";
+
+const projectMemory = new Memory({
+  reader: "project-memory-reader",
+  modifyPlanner: "project-memory-modify-planner",
+  modifier: "project-memory-modifier",
+  createPlanner: "project-memory-create-planner",
+  creator: "project-memory-creator",
+});
+
+const hostPipeline = definePipeline({
+  name: "work-with-memory",
+  description: "Run a task with project memory.",
+  argsOptions: {},
+  agentFactories: {
+    ...projectMemory.agentFactories,
+    // host pipeline agent factories...
+  },
+  async run(team) {
+    const context = await projectMemory.recall(
+      team,
+      "Durable project decisions and conventions.",
+      "./memory/project",
+      3,
+      "How should this project handle releases?",
+    );
+
+    // Run host logic with the recalled context, then save durable facts.
+    await projectMemory.remember(
+      team,
+      "Durable project decisions and conventions.",
+      "./memory/project",
+      3,
+      `Release guidance used:\n${context.map(({ content }) => content).join("\n\n")}`,
+    );
+  },
+});
+```
+
+Multiple memory bases can coexist by giving each one distinct agent names and
+directory:
+
+```ts
+const projectMemory = new Memory({
+  reader: "project-memory-reader",
+  modifyPlanner: "project-memory-modify-planner",
+  modifier: "project-memory-modifier",
+  createPlanner: "project-memory-create-planner",
+  creator: "project-memory-creator",
+});
+
+const userMemory = new Memory({
+  reader: "user-memory-reader",
+  modifyPlanner: "user-memory-modify-planner",
+  modifier: "user-memory-modifier",
+  createPlanner: "user-memory-create-planner",
+  creator: "user-memory-creator",
+});
+
+const agentFactories = {
+  ...projectMemory.agentFactories,
+  ...userMemory.agentFactories,
+};
+```
+
+For finer-grained control, drive the lower-level `MemoryAggregator` and
+`MemoryDispatcher` from `memory-agent-forge/agents`.
 
 ## License
 
