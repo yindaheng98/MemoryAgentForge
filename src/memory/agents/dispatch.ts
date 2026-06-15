@@ -137,7 +137,7 @@ export type MemoryPlan = {
 
 /**
  * Plan how new content should be written across the memory files, the
- * write-side mirror of `memoryAggregation`.
+ * write-side mirror of `memoryAggregate`.
  *
  * One modify-planner owns each existing file. The first pass mirrors recall:
  * modify-planners plan their own files with empty global plans, then the
@@ -289,7 +289,7 @@ export async function memoryApply(
 /**
  * Dispatch new content into the memory files: plan the changes with
  * `memoryPlanning`, then write them with `memoryApply`. The write-side
- * counterpart to recall's `memoryAggregation`.
+ * counterpart to recall's `memoryAggregate`.
  */
 export async function memoryDispatch(
   createModifyPlanner: MemoryModifyPlannerFactory,
