@@ -2,17 +2,19 @@
 
 `memory-agent-forge` turns a folder of plain-text/Markdown files into an
 agent-managed memory. A memory base can be embedded in another pipeline or
-exposed as manual recall/remember pipelines built on
+exposed as manual recall/remember/clean pipelines built on
 [`coding-agent-forge`](https://github.com/yindaheng98/CodingAgentForge):
 
 - **recall** — read a query, scan the memory files with reader agents, and print
   the relevant findings.
 - **remember** — read new content, plan changes across existing files (and new
   files when needed), then apply them with writer agents.
+- **clean** — scan all memory files, compress repeated facts, deduplicate, and
+  delete clearly stale or contradicted content.
 
-Both pipelines run their agents in iterative rounds: every file gets its own
-agent, each round shares the global findings/plans so far, and the loop stops
-once every agent accepts or `--max-rounds` is reached.
+Recall and remember run their agents in iterative rounds: every file gets its
+own agent, each round shares the global findings/plans so far, and the loop
+stops once every agent accepts or `--max-rounds` is reached.
 
 ## Install
 
@@ -41,11 +43,12 @@ The default CLI memory requires these agents:
 | `memory-modifier`       | `remember` | Apply an edit plan to a file                |
 | `memory-create-planner` | `remember` | Plan new file(s) for uncovered content      |
 | `memory-creator`        | `remember` | Create the planned new file(s)              |
+| `memory-cleaner`        | `clean`    | Compress, deduplicate, and prune memory     |
 
 > Keep three paths consistent so the agents can resolve memory files: the CLI's
 > `--memory-path`, each agent's `constants.workingDir`, and the thread's
-> `options.workingDirectory`. The `memory-modifier` and `memory-creator` agents
-> write files, so give their thread/runtime write permission (e.g. an
+> `options.workingDirectory`. The `memory-modifier`, `memory-creator`, and
+> `memory-cleaner` agents write files, so give their thread/runtime write permission (e.g. an
 > `acceptEdits`-style permission mode for the runtime you choose).
 
 Additional memory bases provide their own agent names directly, so their YAML
@@ -60,8 +63,8 @@ base config so it overrides sensitive fields locally:
 
 ## CLI
 
-The CLI is itself a set of pipelines: `src/cli.ts` defines the `recall` and
-`remember` pipelines with the factories and dispatches them via
+The CLI is itself a set of pipelines: `src/cli.ts` defines the `recall`,
+`remember`, and `clean` pipelines with the factories and dispatches them via
 `runPipelinesCli`. Run it in development with `tsx`:
 
 ```bash
@@ -78,6 +81,11 @@ npm run dev -- remember \
   --memory-path ./memory \
   --content-path ./content.txt \
   --max-rounds 3
+
+# Clean and compact the memory files
+npm run dev -- clean \
+  --config memory-forge.yaml \
+  --memory-path ./memory
 ```
 
 After `npm run build`, the same commands are available through the `bin`:
@@ -88,14 +96,14 @@ memory-agent-forge recall --config memory-forge.yaml --memory-path ./memory --qu
 
 Shared options:
 
-| Option           | Pipelines         | Notes                                          |
-| ---------------- | ----------------- | ---------------------------------------------- |
-| `--config`       | both (repeatable) | YAML config files, merged in order (required)  |
-| `--domain-hint`  | both              | Memory domain description (has default)        |
-| `--memory-path`  | both              | Memory directory override (created if missing) |
-| `--max-rounds`   | both              | Refinement round limit (default: `3`)          |
-| `--query-path`   | `recall`          | File holding the recall query (required)       |
-| `--content-path` | `remember`        | File holding the content to store (required)   |
+| Option           | Pipelines            | Notes                                          |
+| ---------------- | -------------------- | ---------------------------------------------- |
+| `--config`       | all (repeatable)     | YAML config files, merged in order (required)  |
+| `--domain-hint`  | all                  | Memory domain description (has default)        |
+| `--memory-path`  | all                  | Memory directory override (created if missing) |
+| `--max-rounds`   | `recall`, `remember` | Refinement round limit (default: `3`)          |
+| `--query-path`   | `recall`             | File holding the recall query (required)       |
+| `--content-path` | `remember`           | File holding the content to store (required)   |
 
 Running with an unknown or missing pipeline name prints the available pipelines.
 Agent runtime records are streamed to the console; recalled memory is printed at
@@ -118,6 +126,7 @@ await runPipelinesCli(
     modifier: "project-memory-modifier",
     createPlanner: "project-memory-create-planner",
     creator: "project-memory-creator",
+    cleaner: "project-memory-cleaner",
   }),
   process.argv.slice(2),
 );
@@ -136,6 +145,7 @@ const projectMemory = new Memory({
   modifier: "project-memory-modifier",
   createPlanner: "project-memory-create-planner",
   creator: "project-memory-creator",
+  cleaner: "project-memory-cleaner",
 });
 
 const hostPipeline = definePipeline({
@@ -177,6 +187,7 @@ const projectMemory = new Memory({
   modifier: "project-memory-modifier",
   createPlanner: "project-memory-create-planner",
   creator: "project-memory-creator",
+  cleaner: "project-memory-cleaner",
 });
 
 const userMemory = new Memory({
@@ -185,6 +196,7 @@ const userMemory = new Memory({
   modifier: "user-memory-modifier",
   createPlanner: "user-memory-create-planner",
   creator: "user-memory-creator",
+  cleaner: "user-memory-cleaner",
 });
 
 const agentFactories = {
@@ -193,8 +205,8 @@ const agentFactories = {
 };
 ```
 
-For finer-grained control, drive the lower-level `MemoryAggregator` and
-`MemoryDispatcher` from `memory-agent-forge/agents`.
+For finer-grained control, drive the lower-level `MemoryAggregator`,
+`MemoryDispatcher`, and `MemoryCleaner` from `memory-agent-forge/agents`.
 
 ## License
 
