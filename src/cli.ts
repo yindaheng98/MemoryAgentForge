@@ -11,7 +11,7 @@ function isDirectCli(): boolean {
 
 if (isDirectCli()) {
   await runPipelinesCli(
-    defineMemoryPipelines("recall", "remember", defaultMemoryAgentNames),
+    defineMemoryPipelines("recall", "remember", "clean", defaultMemoryAgentNames),
     process.argv.slice(2),
   );
 }

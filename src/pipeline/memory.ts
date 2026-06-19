@@ -83,6 +83,8 @@ export class Memory<Names extends MemoryAgentNames = MemoryAgentNames> {
     dirPath: string,
     onRecord?: RecordCallback,
   ): Promise<void> {
+    await listMemoryFiles(dirPath);
+
     await new MemoryCleaner(team, this.agentNames).clean(
       {
         domainHint,
