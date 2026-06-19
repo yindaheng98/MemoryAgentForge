@@ -4,6 +4,7 @@ import path from "node:path";
 
 import {
   MemoryAggregator,
+  MemoryCleaner,
   MemoryDispatcher,
   createMemoryAgentFactories,
   type MemoryAgentNames,
@@ -71,6 +72,21 @@ export class Memory<Names extends MemoryAgentNames = MemoryAgentNames> {
         dirPath,
         filePaths,
         maxRounds,
+      },
+      onRecord,
+    );
+  }
+
+  async clean(
+    team: AgentTeam<MemoryAgentVariablesByName<Names>>,
+    domainHint: string,
+    dirPath: string,
+    onRecord?: RecordCallback,
+  ): Promise<void> {
+    await new MemoryCleaner(team, this.agentNames).clean(
+      {
+        domainHint,
+        dirPath,
       },
       onRecord,
     );
