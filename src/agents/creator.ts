@@ -27,6 +27,7 @@ Task:
 Create only files listed in Creation plan.
 
 Rules:
+- Do not replan.
 - Use only relative paths under Directory.
 - Do not create extra files.
 - Do not duplicate facts.

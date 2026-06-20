@@ -27,6 +27,7 @@ Task:
 Apply Modification plan to File only.
 
 Rules:
+- Do not replan.
 - Edit only this File.
 - Merge and dedupe.
 - Do not append blindly.

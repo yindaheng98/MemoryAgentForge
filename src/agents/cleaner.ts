@@ -22,7 +22,7 @@ Clean memory files in Folder.
 Rules:
 - Compress verbose memory.
 - Merge duplicates.
-- Remove obsolete content.
+- Remove obsolete content only when clear.
 - Do not delete unique facts.
 - Stay inside Folder.
 `;
