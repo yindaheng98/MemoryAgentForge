@@ -18,8 +18,12 @@ export class MemoryModifyPlannerAgent extends MemoryAgent<MemoryModifyPlannerVar
     onRecord?: RecordCallback,
   ): Promise<string> {
     let plannerOutput = await super.runStreamed(variables, onRecord);
+    const allowAccept = variables.modificationPlans.trim() !== "";
     try {
-      this.parseDecision(plannerOutput);
+      const decision = this.parseDecision(plannerOutput);
+      if (decision === "ACCEPT" && !allowAccept) {
+        throw new Error("Initial modify planner output cannot be ACCEPT.");
+      }
       return plannerOutput;
     } catch {
       for (let attempt = 1; attempt <= MAX_FORMAT_CORRECTION_ATTEMPTS; attempt++) {
@@ -28,8 +32,7 @@ export class MemoryModifyPlannerAgent extends MemoryAgent<MemoryModifyPlannerVar
             `
 Bad format.
 
-Valid output:
-- exactly ACCEPT
+Valid output:${allowAccept ? "\n- exactly ACCEPT" : ""}
 - exactly NOCHANGE
 - Markdown starting with "# Modification Plan"
 
@@ -45,7 +48,10 @@ Return only corrected output.
           )
         ).trim();
         try {
-          this.parseDecision(plannerOutput);
+          const decision = this.parseDecision(plannerOutput);
+          if (decision === "ACCEPT" && !allowAccept) {
+            throw new Error("Initial modify planner output cannot be ACCEPT.");
+          }
           return plannerOutput;
         } catch {
           if (attempt === MAX_FORMAT_CORRECTION_ATTEMPTS) {
@@ -60,14 +66,13 @@ Return only corrected output.
   }
 
   parseDecision(plannerOutput: string): MemoryModifyPlannerDecision {
-    const output = plannerOutput.trimStart();
-    const match = MODIFYPLANNER_DECISION_PATTERN.exec(output);
-    if (match !== null) {
-      return match[1] as MemoryModifyPlannerDecision;
+    const match = MODIFYPLANNER_DECISION_PATTERN.exec(plannerOutput.trimStart());
+    if (match === null) {
+      throw new Error(
+        "Modify planner output must be ACCEPT, NOCHANGE, or Markdown starting with # Modification Plan.",
+      );
     }
-    throw new Error(
-      "Modify planner output must be ACCEPT, NOCHANGE, or Markdown starting with # Modification Plan.",
-    );
+    return match[1] as MemoryModifyPlannerDecision;
   }
 
   /** Render modification plans into a prompt path format consistent with this agent. */

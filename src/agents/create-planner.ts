@@ -19,8 +19,12 @@ export class MemoryCreatePlannerAgent extends MemoryAgent<MemoryCreatePlannerVar
     onRecord?: RecordCallback,
   ): Promise<string> {
     let plannerOutput = await super.runStreamed(variables, onRecord);
+    const allowAccept = variables.creationPlan.trim() !== "";
     try {
-      this.parseDecision(plannerOutput);
+      const decision = this.parseDecision(plannerOutput);
+      if (decision === "ACCEPT" && !allowAccept) {
+        throw new Error("Initial create planner output cannot be ACCEPT.");
+      }
       return plannerOutput;
     } catch {
       for (let attempt = 1; attempt <= MAX_FORMAT_CORRECTION_ATTEMPTS; attempt++) {
@@ -29,8 +33,7 @@ export class MemoryCreatePlannerAgent extends MemoryAgent<MemoryCreatePlannerVar
             `
 Bad format.
 
-Valid output:
-- exactly ACCEPT
+Valid output:${allowAccept ? "\n- exactly ACCEPT" : ""}
 - exactly NOCHANGE
 - Markdown starting with "# Creation Plan"
 
@@ -46,7 +49,10 @@ Return only corrected output.
           )
         ).trim();
         try {
-          this.parseDecision(plannerOutput);
+          const decision = this.parseDecision(plannerOutput);
+          if (decision === "ACCEPT" && !allowAccept) {
+            throw new Error("Initial create planner output cannot be ACCEPT.");
+          }
           return plannerOutput;
         } catch {
           if (attempt === MAX_FORMAT_CORRECTION_ATTEMPTS) {
