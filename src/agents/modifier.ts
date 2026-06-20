@@ -24,12 +24,15 @@ Modification plan:
 ${variables.modificationPlan}
 
 Task:
-Apply the modification plan to this file only.
+Apply Modification plan to this File only.
 
 Rules:
-- Do not create a new plan or change ownership.
-- Edit only the specified file.
-- Merge duplicates; prefer current input for conflicts.
+- Do not replan.
+- Edit only File.
+- Merge duplicates.
+- Do not append blindly.
+- Current Input wins conflicts.
+- Keep File focused.
 `;
   }
 }
