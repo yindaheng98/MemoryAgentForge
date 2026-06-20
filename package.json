@@ -1,6 +1,6 @@
 {
   "name": "memory-agent-forge",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Memory recall and remember pipelines for coding agents, built on coding-agent-forge.",
   "repository": {
     "type": "git",

@@ -3,7 +3,6 @@ import { MemoryReaderAgent } from "./reader.js";
 import type { MemoryFraction } from "./types.js";
 
 const IRRELEVANT_MARK = "IRRELEVANT";
-const ACCEPT_MARK = "ACCEPT";
 
 function isRelevant(finding: MemoryFraction): boolean {
   return finding.content !== "" && finding.content !== IRRELEVANT_MARK;
@@ -47,18 +46,20 @@ async function readerPass(
             findings,
             query: options.query,
             filePath: entry.finding.path,
-            irrelevantMark: IRRELEVANT_MARK,
-            acceptMark: ACCEPT_MARK,
           },
           onRecord,
         )
       ).trim();
-      if (content === ACCEPT_MARK) {
+      const decision = entry.reader.parseDecision(content);
+      if (decision === "ACCEPT") {
         return { accepted: true, finding: entry.finding, reader: entry.reader };
       }
       return {
         accepted: false,
-        finding: { path: entry.finding.path, content: content === "" ? IRRELEVANT_MARK : content },
+        finding: {
+          path: entry.finding.path,
+          content: decision === "IRRELEVANT" ? IRRELEVANT_MARK : content,
+        },
         reader: entry.reader,
       };
     }),
