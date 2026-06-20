@@ -27,13 +27,18 @@ export class MemoryCreatePlannerAgent extends MemoryAgent<MemoryCreatePlannerVar
         plannerOutput = (
           await this.thread.runStreamed(
             `
-Bad format. First line must be exactly one of:
-ACCEPT
-NOCHANGE
-# Creation Plan
+Bad format.
+
+Valid output:
+- exactly ACCEPT
+- exactly NOCHANGE
+- Markdown starting with "# Creation Plan"
 
 Previous output:
 ${plannerOutput}
+
+Task:
+Fix format only. Keep the same content.
 
 Return only corrected output.
 `,
@@ -79,19 +84,33 @@ ${variables.content}
 Directory:
 ${dirPath}
 
-Existing-file modification plans:
+Modification plans for existing files:
 ${variables.modificationPlans}
 
 Previous creation plan:
 ${creationPlan}
 
-According to the modification plans, decide whether the content to remember is fully covered, and write a creation plan for new file(s) in ${dirPath} for whatever is not covered.
-If the earlier creation plan is already good, output exactly:
-ACCEPT
-If the content is already fully covered, output exactly:
-NOCHANGE
-If a change helps, output the revised creation plan as Markdown starting with exactly:
+Task:
+Find the parts of Input not included in the existing-file modification plans.
+Return ACCEPT if Previous creation plan is already right.
+Return NOCHANGE if nothing is left.
+Otherwise return a corrected creation plan.
+
+Format:
 # Creation Plan
+Directory: ${dirPath}
+Files:
+- Path: <relative path under Directory>
+  Input:
+  - <small remaining Input fact>
+
+Rules:
+- Remove file plans that are no longer needed.
+- Do not duplicate existing-file modification plans.
+- Use only relative paths under Directory.
+- Keep files focused.
+
+Return only: ACCEPT | NOCHANGE | Markdown starting with "# Creation Plan".
 `;
     }
 
@@ -105,14 +124,28 @@ ${variables.content}
 Directory:
 ${dirPath}
 
-Existing-file modification plans:
+Modification plans for existing files:
 ${variables.modificationPlans}
 
-According to the modification plans, decide whether the content to remember is fully covered, and write a creation plan for new file(s) in ${dirPath} for whatever is not covered.
-If the content is already fully covered, output exactly:
-NOCHANGE
-If a change helps, output the creation plan as Markdown starting with exactly:
+Task:
+Find the parts of Input not included in the existing-file modification plans.
+Return NOCHANGE if nothing is left.
+Otherwise plan new files only for the remaining Input.
+
+Format:
 # Creation Plan
+Directory: ${dirPath}
+Files:
+- Path: <relative path under Directory>
+  Input:
+  - <small remaining Input fact>
+
+Rules:
+- Do not create files for Input already included in existing-file modification plans.
+- Use only relative paths under Directory.
+- Keep files focused.
+
+Return only: NOCHANGE | Markdown starting with "# Creation Plan".
 `;
   }
 }
