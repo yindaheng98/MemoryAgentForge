@@ -9,7 +9,7 @@ export type MemoryModifyPlannerVariables = {
 };
 
 export type MemoryModifyPlannerDecision = "ACCEPT" | "NOCHANGE" | "# Modification Plan";
-const MODIFYPLANNER_DECISION_PATTERN = /^(ACCEPT|NOCHANGE|# Modification Plan\b)/;
+const MODIFYPLANNER_DECISION_PATTERN = /^(ACCEPT|NOCHANGE|# Modification Plan)\b/;
 const MAX_FORMAT_CORRECTION_ATTEMPTS = 3;
 
 export class MemoryModifyPlannerAgent extends MemoryAgent<MemoryModifyPlannerVariables> {

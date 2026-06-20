@@ -10,7 +10,7 @@ export type MemoryCreatePlannerVariables = {
 };
 
 export type MemoryCreatePlannerDecision = "ACCEPT" | "NOCHANGE" | "# Creation Plan";
-const CREATEPLANNER_DECISION_PATTERN = /^(ACCEPT|NOCHANGE|# Creation Plan\b)/;
+const CREATEPLANNER_DECISION_PATTERN = /^(ACCEPT|NOCHANGE|# Creation Plan)\b/;
 const MAX_FORMAT_CORRECTION_ATTEMPTS = 3;
 
 export class MemoryCreatePlannerAgent extends MemoryAgent<MemoryCreatePlannerVariables> {
