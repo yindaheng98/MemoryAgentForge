@@ -35,19 +35,11 @@ Current findings:
 ${findings}
 
 Task:
-Read File again. Check whether Current findings already cover this File's useful memory.
+Return ${variables.acceptMark} if current findings fully cover relevant facts from this file.
+Return ${variables.irrelevantMark} if the file contains no relevant facts.
+Otherwise, return only new or corrected facts from the file.
 
-Return:
-- ${variables.acceptMark} if covered.
-- ${variables.irrelevantMark} if File adds nothing.
-- Otherwise return only this File's missing or corrected finding.
-
-Rules:
-- Fix only this File's contribution.
-- Do not rewrite global findings.
-- Do not explain.
-
-Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | revised File finding.
+Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | Revised facts from the file.
 `;
     }
 
@@ -62,15 +54,10 @@ File:
 ${filePath}
 
 Task:
-Read File. Return only File memory useful for Query.
-Return exactly ${variables.irrelevantMark} if File adds nothing.
+Return facts from the file relevant to the query.
+If none, return exactly: ${variables.irrelevantMark}
 
-Rules:
-- Use File only.
-- Do not summarize unrelated content.
-- Do not explain.
-
-Return only: ${variables.irrelevantMark} | File finding.
+Return only: ${variables.irrelevantMark} | Relevant facts from the file.
 `;
   }
 }
