@@ -26,13 +26,18 @@ export class MemoryModifyPlannerAgent extends MemoryAgent<MemoryModifyPlannerVar
         plannerOutput = (
           await this.thread.runStreamed(
             `
-Bad format. First line must be exactly one of:
-ACCEPT
-NOCHANGE
-# Modification Plan
+Bad format.
+
+Valid output:
+- exactly ACCEPT
+- exactly NOCHANGE
+- Markdown starting with "# Modification Plan"
 
 Previous output:
 ${plannerOutput}
+
+Task:
+Fix format only. Keep the same content.
 
 Return only corrected output.
 `,
@@ -86,16 +91,28 @@ ${variables.content}
 File:
 ${filePath}
 
-Global plans:
+All current plans:
 ${modificationPlans}
 
-According to the global plans, decide the modification plan of ${filePath}.
-If the earlier modification plan for this file is already good, output exactly:
-ACCEPT
-If this file need not change, output exactly:
-NOCHANGE
-If a change helps, output the revised modification plan for this memory file as Markdown starting with exactly:
+Task:
+Read File. Check whether this File's current plan is right.
+Return ACCEPT if it is right.
+Return NOCHANGE if no Input should go in this File.
+Otherwise return a corrected plan for this File only.
+
+Format:
 # Modification Plan
+File: ${filePath}
+Items:
+- Input: <small Input fact>
+  Change: <add | merge | update | delete | no change>: <what to do>
+
+Rules:
+- Use All current plans only to avoid duplicate work.
+- Do not edit other plans.
+- Do not plan new files.
+
+Return only: ACCEPT | NOCHANGE | Markdown starting with "# Modification Plan".
 `;
     }
 
@@ -110,19 +127,21 @@ File:
 ${filePath}
 
 Task:
-Review file and identify input facts relevant to this file only.
-Return NOCHANGE if no relevant facts are found.
-Otherwise, plan necessary edits.
+Read File. Find the parts of Input that should go in this File.
+Return NOCHANGE if none should go here.
+Otherwise return a change plan for this File only.
 
 Format:
 # Modification Plan
-Owns:
-- <Input fact> :: <add | merge | update | delete | none>
+File: ${filePath}
+Items:
+- Input: <small Input fact>
+  Change: <add | merge | update | delete | no change>: <what to do>
 
 Rules:
-- Use \`none\` if the fact already exists in the file.
-- Do not include facts unrelated to this file's topic.
-- Do not propose creating new files.
+- Use \`no change\` if File already has the Input fact.
+- Do not include Input for other files.
+- Do not plan new files.
 
 Return only: NOCHANGE | Markdown starting with "# Modification Plan".
 `;
