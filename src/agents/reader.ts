@@ -31,15 +31,16 @@ ${variables.query}
 File:
 ${filePath}
 
-Current findings:
+Current relevant findings:
 ${findings}
 
 Task:
-Return ${variables.acceptMark} if current findings fully cover relevant facts from this file.
-Return ${variables.irrelevantMark} if the file contains no relevant facts.
-Otherwise, return the complete set of relevant facts from the file after adding and correcting facts.
+Read File again.
+Return ${variables.acceptMark} if Current relevant findings already include relevant content for this File.
+Return ${variables.irrelevantMark} if File has no relevant content.
+Otherwise, return revised relevant content for this File.
 
-Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | Complete updated facts from the file.
+Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | revised relevant content for this File.
 `;
     }
 
@@ -54,10 +55,10 @@ File:
 ${filePath}
 
 Task:
-Read File. Return only content relevant to the Query.
+Read File. Return only relevant content for the Query.
 If File has no relevant content, return exactly ${variables.irrelevantMark}
 
-Return only: ${variables.irrelevantMark} | Relevant content from the file.
+Return only: ${variables.irrelevantMark} | Relevant content for the Query from this File.
 `;
   }
 }
