@@ -106,11 +106,25 @@ ${variables.domainHint}
 Input:
 ${variables.content}
 
-Read the memory file ${filePath} and decide its modification plan for the parts of the content that belong to it.
-If this file need not change, output exactly:
-NOCHANGE
-If a change helps, output the modification plan for this memory file as Markdown starting with exactly:
+File:
+${filePath}
+
+Task:
+Review file and identify input facts relevant to this file only.
+Return NOCHANGE if no relevant facts are found.
+Otherwise, plan necessary edits.
+
+Format:
 # Modification Plan
+Owns:
+- <Input fact> :: <add | merge | update | delete | none>
+
+Rules:
+- Use \`none\` if the fact already exists in the file.
+- Do not include facts unrelated to this file's topic.
+- Do not propose creating new files.
+
+Return only: NOCHANGE | Markdown starting with "# Modification Plan".
 `;
   }
 }
