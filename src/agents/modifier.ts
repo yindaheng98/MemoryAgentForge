@@ -24,8 +24,14 @@ Modification plan:
 ${variables.modificationPlan}
 
 Task:
-Apply Modification plan to File only. Merge, dedupe. Input wins conflicts.
-Keep File focused and bounded.
+Apply Modification plan to File only.
+
+Rules:
+- Edit only this File.
+- Merge and dedupe.
+- Do not append blindly.
+- Input wins conflicts.
+- Keep the File focused.
 `;
   }
 }

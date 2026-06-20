@@ -17,7 +17,14 @@ Folder:
 ${dirPath}
 
 Task:
-Scan files in Folder. Compress, dedupe, delete obsolete content.
+Clean memory files in Folder.
+
+Rules:
+- Compress verbose memory.
+- Merge duplicates.
+- Remove obsolete content.
+- Do not delete unique facts.
+- Stay inside Folder.
 `;
   }
 }
