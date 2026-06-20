@@ -54,10 +54,10 @@ File:
 ${filePath}
 
 Task:
-Return facts from the file relevant to the query.
-If none, return exactly: ${variables.irrelevantMark}
+Read File. Return only content relevant to the Query.
+If File has no relevant content, return exactly ${variables.irrelevantMark}
 
-Return only: ${variables.irrelevantMark} | Relevant facts from the file.
+Return only: ${variables.irrelevantMark} | Relevant content from the file.
 `;
   }
 }
