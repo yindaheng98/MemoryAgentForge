@@ -31,15 +31,23 @@ ${variables.query}
 File:
 ${filePath}
 
-Global findings:
+Current findings:
 ${findings}
 
-According to the global findings, decide the finding of ${filePath} for the query.
-If the earlier finding for this file is already good, output exactly:
-${variables.acceptMark}
-If this file no longer contributes anything useful, output exactly:
-${variables.irrelevantMark}
-If a change helps, output the revised finding for this memory file.
+Task:
+Read File again. Check whether Current findings already cover this File's useful memory.
+
+Return:
+- ${variables.acceptMark} if covered.
+- ${variables.irrelevantMark} if File adds nothing.
+- Otherwise return only this File's missing or corrected finding.
+
+Rules:
+- Fix only this File's contribution.
+- Do not rewrite global findings.
+- Do not explain.
+
+Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | revised File finding.
 `;
     }
 
@@ -54,7 +62,15 @@ File:
 ${filePath}
 
 Task:
-Read File. Return only concise query-related memory; else exactly ${variables.irrelevantMark}.
+Read File. Return only File memory useful for Query.
+Return exactly ${variables.irrelevantMark} if File adds nothing.
+
+Rules:
+- Use File only.
+- Do not summarize unrelated content.
+- Do not explain.
+
+Return only: ${variables.irrelevantMark} | File finding.
 `;
   }
 }
