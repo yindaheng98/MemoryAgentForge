@@ -6,7 +6,6 @@ import { MemoryCreatorAgent } from "./creator.js";
 import type { MemoryFraction } from "./types.js";
 
 const NOCHANGE_MARK = "NOCHANGE";
-const ACCEPT_MARK = "ACCEPT";
 
 function isMeaningful(fraction: MemoryFraction): boolean {
   return fraction.content !== "" && fraction.content !== NOCHANGE_MARK;
@@ -44,20 +43,19 @@ async function modifyPlannerPass(
       if (entry.accepted) {
         return entry;
       }
-      const content = (
+      const plan = (
         await entry.modifyPlanner.runStreamed(
           {
             domainHint: options.domainHint,
             content: options.content,
             filePath: entry.modificationPlan.path,
             modificationPlans,
-            noChangeMark: NOCHANGE_MARK,
-            acceptMark: ACCEPT_MARK,
           },
           onRecord,
         )
       ).trim();
-      if (content === ACCEPT_MARK) {
+      const decision = entry.modifyPlanner.parseDecision(plan);
+      if (decision === "ACCEPT") {
         return {
           accepted: true,
           modificationPlan: entry.modificationPlan,
@@ -68,7 +66,7 @@ async function modifyPlannerPass(
         accepted: false,
         modificationPlan: {
           path: entry.modificationPlan.path,
-          content: content === "" ? NOCHANGE_MARK : content,
+          content: decision === "NOCHANGE" ? NOCHANGE_MARK : plan,
         },
         modifyPlanner: entry.modifyPlanner,
       };
@@ -98,7 +96,7 @@ async function createPlannerPass(
   if (current.accepted) {
     return current;
   }
-  const content = (
+  const plan = (
     await current.createPlanner.runStreamed(
       {
         domainHint: options.domainHint,
@@ -107,24 +105,24 @@ async function createPlannerPass(
         modificationPlans:
           modificationPlans === "" ? "(no existing-file plans)" : modificationPlans,
         creationPlan: isMeaningful(current.creationPlan) ? current.creationPlan.content : "",
-        noChangeMark: NOCHANGE_MARK,
-        acceptMark: ACCEPT_MARK,
       },
       onRecord,
     )
   ).trim();
-  if (content === ACCEPT_MARK) {
+  const decision = current.createPlanner.parseDecision(plan);
+  if (decision === "ACCEPT") {
     return {
       accepted: true,
       creationPlan: current.creationPlan,
       createPlanner: current.createPlanner,
     };
   }
+  const content = decision === "NOCHANGE" ? NOCHANGE_MARK : plan;
   return {
     accepted: false,
     creationPlan: {
       path: current.creationPlan.path,
-      content: content === "" ? NOCHANGE_MARK : content,
+      content,
     },
     createPlanner: current.createPlanner,
   };
