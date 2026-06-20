@@ -20,7 +20,7 @@ Task:
 Clean memory files in Folder.
 
 Rules:
-- Compress verbose memory.
+- Compress long content.
 - Merge duplicates.
 - Remove obsolete content only when clear.
 - Do not delete unique facts.
