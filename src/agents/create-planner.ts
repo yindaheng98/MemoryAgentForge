@@ -27,8 +27,7 @@ export class MemoryCreatePlannerAgent extends MemoryAgent<MemoryCreatePlannerVar
         plannerOutput = (
           await this.thread.runStreamed(
             `
-Previous create-planner output did not follow the required format.
-The output must start with exactly one of:
+Bad format. First line must be exactly one of:
 ACCEPT
 NOCHANGE
 # Creation Plan
@@ -36,7 +35,7 @@ NOCHANGE
 Previous output:
 ${plannerOutput}
 
-Please correct it.
+Return only corrected output.
 `,
             onRecord,
           )
@@ -71,16 +70,19 @@ Please correct it.
     const creationPlan = variables.creationPlan.trim();
     if (creationPlan !== "") {
       return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
-Content being remembered:
+Input:
 ${variables.content}
 
-Modification plans for existing files in ${dirPath}:
+Directory:
+${dirPath}
+
+Existing-file modification plans:
 ${variables.modificationPlans}
 
-Earlier creation plan for new file(s):
+Previous creation plan:
 ${creationPlan}
 
 According to the modification plans, decide whether the content to remember is fully covered, and write a creation plan for new file(s) in ${dirPath} for whatever is not covered.
@@ -94,13 +96,16 @@ If a change helps, output the revised creation plan as Markdown starting with ex
     }
 
     return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
-Content being remembered:
+Input:
 ${variables.content}
 
-Modification plans for existing files in ${dirPath}:
+Directory:
+${dirPath}
+
+Existing-file modification plans:
 ${variables.modificationPlans}
 
 According to the modification plans, decide whether the content to remember is fully covered, and write a creation plan for new file(s) in ${dirPath} for whatever is not covered.

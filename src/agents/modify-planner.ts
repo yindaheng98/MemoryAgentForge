@@ -26,8 +26,7 @@ export class MemoryModifyPlannerAgent extends MemoryAgent<MemoryModifyPlannerVar
         plannerOutput = (
           await this.thread.runStreamed(
             `
-Previous modify-planner output did not follow the required format.
-The output must start with exactly one of:
+Bad format. First line must be exactly one of:
 ACCEPT
 NOCHANGE
 # Modification Plan
@@ -35,7 +34,7 @@ NOCHANGE
 Previous output:
 ${plannerOutput}
 
-Please correct it.
+Return only corrected output.
 `,
             onRecord,
           )
@@ -78,13 +77,16 @@ Please correct it.
     const modificationPlans = variables.modificationPlans.trim();
     if (modificationPlans !== "") {
       return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
-Content being remembered:
+Input:
 ${variables.content}
 
-Global modification plans from all memory files (may include an earlier modification plan for ${filePath}):
+File:
+${filePath}
+
+Global plans:
 ${modificationPlans}
 
 According to the global plans, decide the modification plan of ${filePath}.
@@ -98,10 +100,10 @@ If a change helps, output the revised modification plan for this memory file as 
     }
 
     return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
-Content being remembered:
+Input:
 ${variables.content}
 
 Read the memory file ${filePath} and decide its modification plan for the parts of the content that belong to it.

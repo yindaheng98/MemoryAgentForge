@@ -11,17 +11,21 @@ export class MemoryModifierAgent extends MemoryAgent<MemoryModifierVariables> {
   protected buildPrompt(variables: Readonly<MemoryModifierVariables>): string {
     const filePath = this.memoryRelativePath(variables.filePath);
     return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
-Content being remembered:
+Input:
 ${variables.content}
 
-Modification plan for ${filePath}:
+File:
+${filePath}
+
+Modification plan:
 ${variables.modificationPlan}
 
-Apply the modification plan to ${filePath}. Edit only this file.
-Merge instead of blindly appending: remove duplication, prefer newer content on conflict, and keep the file focused and bounded.
+Task:
+Apply Modification plan to File only. Merge, dedupe. Input wins conflicts.
+Keep File focused and bounded.
 `;
   }
 }

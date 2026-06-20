@@ -22,13 +22,16 @@ export class MemoryReaderAgent extends MemoryAgent<MemoryReaderVariables> {
     const findings = variables.findings.trim();
     if (findings !== "") {
       return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
 Query:
 ${variables.query}
 
-Global findings from all memory files (may include an earlier finding for ${filePath}):
+File:
+${filePath}
+
+Global findings:
 ${findings}
 
 According to the global findings, decide the finding of ${filePath} for the query.
@@ -41,15 +44,17 @@ If a change helps, output the revised finding for this memory file.
     }
 
     return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
 Query:
 ${variables.query}
 
-Read the memory file ${filePath} and extract anything related to the query. Summarize the related points concisely.
-If nothing is related to the query, output exactly:
-${variables.irrelevantMark}
+File:
+${filePath}
+
+Task:
+Read File. Return only concise query-related memory; else exactly ${variables.irrelevantMark}.
 `;
   }
 }

@@ -11,16 +11,20 @@ export class MemoryCreatorAgent extends MemoryAgent<MemoryCreatorVariables> {
   protected buildPrompt(variables: Readonly<MemoryCreatorVariables>): string {
     const dirPath = this.memoryRelativePath(variables.dirPath);
     return `
-Memory domain:
+Domain:
 ${variables.domainHint}
 
-Content being remembered:
+Input:
 ${variables.content}
 
-Creation plan for new file(s) in ${dirPath}:
+Directory:
+${dirPath}
+
+Creation plan:
 ${variables.creationPlan}
 
-Apply the creation plan by creating the new memory file(s) in ${dirPath}. Keep each file focused and bounded.
+Task:
+Create only files in Creation plan. Keep files focused, bounded, no duplicates.
 `;
   }
 }
