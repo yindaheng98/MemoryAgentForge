@@ -24,14 +24,13 @@ Creation plan:
 ${variables.creationPlan}
 
 Task:
-Create only files listed in Creation plan.
+Create files as specified in the creation plan only.
 
 Rules:
-- Do not replan.
-- Use only relative paths under Directory.
+- Do not alter the plan.
+- Use relative paths within the directory only.
 - Do not create extra files.
-- Do not duplicate facts.
-- Keep each file focused.
+- Merge facts assigned to the same path into a single file.
 `;
   }
 }
