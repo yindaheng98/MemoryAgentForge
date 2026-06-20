@@ -37,9 +37,9 @@ ${findings}
 Task:
 Return ${variables.acceptMark} if current findings fully cover relevant facts from this file.
 Return ${variables.irrelevantMark} if the file contains no relevant facts.
-Otherwise, return only new or corrected facts from the file.
+Otherwise, return the complete set of relevant facts from the file after adding and correcting facts.
 
-Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | Revised facts from the file.
+Return only: ${variables.acceptMark} | ${variables.irrelevantMark} | Complete updated facts from the file.
 `;
     }
 
