@@ -96,18 +96,19 @@ memory-agent-forge recall --config memory-forge.yaml --memory-path ./memory --qu
 
 Shared options:
 
-| Option           | Pipelines            | Notes                                          |
-| ---------------- | -------------------- | ---------------------------------------------- |
-| `--config`       | all (repeatable)     | YAML config files, merged in order (required)  |
-| `--domain-hint`  | all                  | Memory domain description (has default)        |
-| `--memory-path`  | all                  | Memory directory override (created if missing) |
-| `--max-rounds`   | `recall`, `remember` | Refinement round limit (default: `3`)          |
-| `--query-path`   | `recall`             | File holding the recall query (required)       |
-| `--content-path` | `remember`           | File holding the content to store (required)   |
+| Option              | Pipelines            | Notes                                                     |
+| ------------------- | -------------------- | --------------------------------------------------------- |
+| `--config`          | all (repeatable)     | YAML config files, merged in order (required)             |
+| `--domain-hint`     | all                  | Memory domain description (has default)                   |
+| `--memory-path`     | all                  | Memory directory override (created if missing)            |
+| `--log-record-path` | all                  | JSONL file for runtime records (default: `records.jsonl`) |
+| `--max-rounds`      | `recall`, `remember` | Refinement round limit (default: `3`)                     |
+| `--query-path`      | `recall`             | File holding the recall query (required)                  |
+| `--content-path`    | `remember`           | File holding the content to store (required)              |
 
 Running with an unknown or missing pipeline name prints the available pipelines.
-Agent runtime records are streamed to the console; recalled memory is printed at
-the end of a `recall` run.
+Agent runtime records are streamed to the console and appended to the configured
+JSONL file; recalled memory is printed at the end of a `recall` run.
 
 ## Library usage
 

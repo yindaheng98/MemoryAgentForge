@@ -4,7 +4,6 @@ import {
   type Pipeline,
   type PipelineOptions,
   type PipelineArgsOptions,
-  type RecordCallback,
 } from "coding-agent-forge";
 import {
   createMemoryAgentFactories,
@@ -13,10 +12,12 @@ import {
 } from "../agents/index.js";
 import { Memory } from "./memory.js";
 import { sharedMemoryArgsOptions } from "./config.js";
+import { createRecordLogger } from "./log.js";
 
 export const memoryCleanArgsOptions = {
   "domain-hint": sharedMemoryArgsOptions["domain-hint"],
   "memory-path": sharedMemoryArgsOptions["memory-path"],
+  "log-record-path": sharedMemoryArgsOptions["log-record-path"],
 } as const satisfies PipelineArgsOptions;
 
 /**
@@ -37,13 +38,15 @@ export function defineMemoryCleanPipeline<Names extends MemoryAgentNames>(
       team: AgentTeam<MemoryAgentVariablesByName<Names>>,
       options: PipelineOptions<typeof memoryCleanArgsOptions>,
     ): Promise<void> {
-      const { "domain-hint": domainHint, "memory-path": memoryPath } = options;
+      const {
+        "domain-hint": domainHint,
+        "memory-path": memoryPath,
+        "log-record-path": logRecordPath,
+      } = options;
       if (memoryPath === undefined) {
         throw new Error("--memory-path is required");
       }
-      const logRecord: RecordCallback = (thread, record) => {
-        console.log(thread.recordToPrettyString(record));
-      };
+      const logRecord = await createRecordLogger(logRecordPath);
       await memory.clean(team, domainHint, memoryPath, logRecord);
     },
   });

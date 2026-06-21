@@ -16,4 +16,9 @@ export const sharedMemoryArgsOptions = {
     default: "3",
     description: "Refinement round limit for recall and remember",
   },
+  "log-record-path": {
+    type: "string",
+    default: "records.jsonl",
+    description: "JSONL file to append agent runtime records to",
+  },
 } as const satisfies PipelineArgsOptions;

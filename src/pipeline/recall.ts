@@ -4,7 +4,6 @@ import {
   type Pipeline,
   type PipelineOptions,
   type PipelineArgsOptions,
-  type RecordCallback,
 } from "coding-agent-forge";
 import { readFile } from "node:fs/promises";
 import {
@@ -15,6 +14,7 @@ import {
 } from "../agents/index.js";
 import { Memory } from "./memory.js";
 import { sharedMemoryArgsOptions } from "./config.js";
+import { createRecordLogger } from "./log.js";
 
 export type MemoryRecallCallback = (findings: readonly MemoryFraction[]) => Promise<void> | void;
 
@@ -52,14 +52,13 @@ export function defineMemoryRecallPipeline<Names extends MemoryAgentNames>(
         "query-path": queryPath,
         "memory-path": memoryPath,
         "max-rounds": maxRounds,
+        "log-record-path": logRecordPath,
       } = options;
       if (queryPath === undefined || memoryPath === undefined) {
         throw new Error(["--query-path", "--memory-path"].join(", ") + " are required");
       }
       const query = (await readFile(queryPath, "utf8")).trim();
-      const logRecord: RecordCallback = (thread, record) => {
-        console.log(thread.recordToPrettyString(record));
-      };
+      const logRecord = await createRecordLogger(logRecordPath);
       const findings = await memory.recall(
         team,
         domainHint,
