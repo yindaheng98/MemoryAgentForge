@@ -1,4 +1,5 @@
 import type { RecordCallback } from "coding-agent-forge";
+import { quoteBlock } from "./prompt.js";
 import { MemoryAgent, type MemoryFraction } from "./types.js";
 
 export type MemoryModifyPlannerVariables = {
@@ -37,7 +38,7 @@ Valid output:${allowAccept ? "\n- exactly ACCEPT" : ""}
 - Markdown starting with "# Modification Plan"
 
 Previous output:
-${plannerOutput}
+${quoteBlock(plannerOutput)}
 
 Task:
 Fix format only. Keep the same content.
@@ -91,13 +92,13 @@ Domain:
 ${variables.domainHint}
 
 Input:
-${variables.content}
+${quoteBlock(variables.content)}
 
 File:
 ${filePath}
 
 All current plans:
-${modificationPlans}
+${quoteBlock(modificationPlans)}
 
 Task:
 Read File. Check whether this File's current plan is right.
@@ -126,7 +127,7 @@ Domain:
 ${variables.domainHint}
 
 Input:
-${variables.content}
+${quoteBlock(variables.content)}
 
 File:
 ${filePath}

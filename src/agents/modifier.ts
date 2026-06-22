@@ -1,3 +1,4 @@
+import { quoteBlock } from "./prompt.js";
 import { MemoryAgent } from "./types.js";
 
 export type MemoryModifierVariables = {
@@ -15,13 +16,13 @@ Domain:
 ${variables.domainHint}
 
 Input:
-${variables.content}
+${quoteBlock(variables.content)}
 
 File:
 ${filePath}
 
 Modification plan:
-${variables.modificationPlan}
+${quoteBlock(variables.modificationPlan)}
 
 Task:
 Apply Modification plan to this File only.

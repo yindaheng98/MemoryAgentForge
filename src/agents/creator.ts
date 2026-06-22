@@ -1,3 +1,4 @@
+import { quoteBlock } from "./prompt.js";
 import { MemoryAgent } from "./types.js";
 
 export type MemoryCreatorVariables = {
@@ -15,13 +16,13 @@ Domain:
 ${variables.domainHint}
 
 Input:
-${variables.content}
+${quoteBlock(variables.content)}
 
 Directory:
 ${dirPath}
 
 Creation plan:
-${variables.creationPlan}
+${quoteBlock(variables.creationPlan)}
 
 Task:
 Create files as specified in the Creation plan only.

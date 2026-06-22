@@ -1,4 +1,5 @@
 import type { RecordCallback } from "coding-agent-forge";
+import { quoteBlock } from "./prompt.js";
 import { MemoryAgent } from "./types.js";
 
 export type MemoryCreatePlannerVariables = {
@@ -38,7 +39,7 @@ Valid output:${allowAccept ? "\n- exactly ACCEPT" : ""}
 - Markdown starting with "# Creation Plan"
 
 Previous output:
-${plannerOutput}
+${quoteBlock(plannerOutput)}
 
 Task:
 Fix format only. Keep the same content.
@@ -85,16 +86,16 @@ Domain:
 ${variables.domainHint}
 
 Input:
-${variables.content}
+${quoteBlock(variables.content)}
 
 Directory:
 ${dirPath}
 
 Modification plans for existing files:
-${variables.modificationPlans}
+${quoteBlock(variables.modificationPlans)}
 
 Previous creation plan:
-${creationPlan}
+${quoteBlock(creationPlan)}
 
 Task:
 Find the parts of Input not included in the existing-file modification plans.
@@ -125,13 +126,13 @@ Domain:
 ${variables.domainHint}
 
 Input:
-${variables.content}
+${quoteBlock(variables.content)}
 
 Directory:
 ${dirPath}
 
 Modification plans for existing files:
-${variables.modificationPlans}
+${quoteBlock(variables.modificationPlans)}
 
 Task:
 Find the parts of Input not included in the existing-file modification plans.
