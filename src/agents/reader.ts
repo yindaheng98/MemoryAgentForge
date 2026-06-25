@@ -103,9 +103,8 @@ Task:
 Read File again.
 Return ACCEPT if Current relevant findings already include relevant content for this File.
 Return IRRELEVANT if File has no relevant content.
-Otherwise, return revised relevant content for this File.
+Otherwise, return revised relevant content for this file only in the following format:
 
-Format:
 # Finding
 - <small relevant Query fact from this File>
 
@@ -126,9 +125,8 @@ ${filePath}
 Task:
 Read File. Find the relevant content for the Query in this File.
 Return IRRELEVANT if File has no relevant content.
-Otherwise return relevant content for this File only.
+Otherwise return relevant content for this file only in the following format:
 
-Format:
 # Finding
 - <relevant fact for the Query from this File>
 

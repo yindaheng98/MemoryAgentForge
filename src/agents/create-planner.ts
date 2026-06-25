@@ -101,9 +101,8 @@ Task:
 Find the parts of Input not included in the existing-file modification plans.
 Return ACCEPT if Previous creation plan is already right.
 Return NOCHANGE if nothing is left.
-Otherwise return a corrected creation plan.
+Otherwise return a corrected creation plan in the following format:
 
-Format:
 # Creation Plan
 Directory: ${dirPath}
 Files:
@@ -137,9 +136,8 @@ ${quoteBlock(variables.modificationPlans)}
 Task:
 Find the parts of Input not included in the existing-file modification plans.
 Return NOCHANGE if nothing is left.
-Otherwise plan new files only for the remaining Input.
+Otherwise plan new files only for the remaining Input in the following format:
 
-Format:
 # Creation Plan
 Directory: ${dirPath}
 Files:

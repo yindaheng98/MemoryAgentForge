@@ -104,9 +104,8 @@ Task:
 Read File. Check whether this File's current plan is right.
 Return ACCEPT if it is right.
 Return NOCHANGE if no Input should go in this File.
-Otherwise return a corrected plan for this File only.
+Otherwise return a corrected plan for this file only in the following format:
 
-Format:
 # Modification Plan
 File: ${filePath}
 Items:
@@ -135,9 +134,8 @@ ${filePath}
 Task:
 Read File. Find the parts of Input that should go in this File.
 Return NOCHANGE if none should go here.
-Otherwise return a change plan for this File only.
+Otherwise return a change plan for this file only in the following format:
 
-Format:
 # Modification Plan
 File: ${filePath}
 Items:
