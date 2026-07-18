@@ -20,6 +20,7 @@ Task:
 Clean memory files in Folder.
 
 Rules:
+- Write access is limited files in "${dirPath}".
 - Compress long content.
 - Merge duplicates.
 - Remove obsolete content only when clear.

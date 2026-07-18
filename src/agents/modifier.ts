@@ -28,6 +28,7 @@ Task:
 Apply Modification plan to this File only.
 
 Rules:
+- Write access is limited to the file at "${filePath}".
 - Do not replan.
 - Edit only File.
 - Merge duplicates.

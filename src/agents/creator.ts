@@ -28,6 +28,7 @@ Task:
 Create files as specified in the Creation plan only.
 
 Rules:
+- Write access is limited to files in "${dirPath}".
 - Do not alter the plan.
 - Use only relative paths under Directory.
 - Do not create extra files.
