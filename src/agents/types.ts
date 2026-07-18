@@ -31,7 +31,7 @@ export abstract class MemoryAgent<Variables extends PromptVariables> extends Age
   }
 
   protected memoryRelativePath(filePath: string): string {
-    return path.relative(this.workingDir, path.resolve(filePath)) || ".";
+    return `./${path.relative(this.workingDir, path.resolve(filePath))}`;
   }
 }
 
